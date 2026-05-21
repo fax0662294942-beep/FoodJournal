@@ -183,6 +183,33 @@
 
     /* MISC */
     .spin-wrap{display:flex;align-items:center;justify-content:center;padding:32px;}
+
+    /* CATEGORY BROWSER */
+    .cb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
+    .cb-cat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 6px 9px;cursor:pointer;text-align:center;transition:all .15s;position:relative;}
+    .cb-cat:hover{border-color:var(--accent);background:var(--accent-dim);}
+    .cb-cat.on{background:var(--accent-dim);border-color:var(--accent);}
+    .cb-cat-em{font-size:24px;display:block;margin-bottom:4px;}
+    .cb-cat-name{font-size:10px;font-weight:600;color:var(--text2);line-height:1.3;}
+    .cb-cat.on .cb-cat-name{color:var(--accent);}
+    .cb-breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 11px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border);}
+    .cb-back{background:none;border:none;color:var(--accent);cursor:pointer;font-size:18px;padding:0;line-height:1;}
+    .cb-path{font-size:12px;color:var(--text2);}
+    .cb-path strong{color:var(--text);}
+    .cb-subs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
+    .cb-sub{padding:5px 12px;border-radius:20px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
+    .cb-sub.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+    .cb-foods{display:flex;flex-direction:column;gap:5px;}
+    .cb-food{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border);cursor:pointer;transition:all .15s;}
+    .cb-food:hover{border-color:var(--accent);}
+    .cb-food.added{border-color:var(--green);background:var(--green-dim);}
+    .cb-food-em{font-size:19px;flex-shrink:0;}
+    .cb-food-name{font-size:13px;font-weight:500;flex:1;}
+    .cb-food-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+    .cb-food-check{font-size:14px;flex-shrink:0;color:var(--green);}
+    .search-mode-toggle{display:flex;gap:6px;margin-bottom:10px;}
+    .smt-btn{flex:1;padding:7px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .15s;font-family:'DM Sans',sans-serif;}
+    .smt-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
     .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
     @keyframes sp{to{transform:rotate(360deg)}}
     .empty{text-align:center;padding:36px 16px;color:var(--text3);}
@@ -227,13 +254,17 @@ const FOODS = [
   {id:'couscous',nome:'Couscous',cat:'Cereali e Derivati',sub:'Couscous',em:'🫙',tags:[]},
   {id:'cereali_col',nome:'Cereali da colazione',cat:'Cereali e Derivati',sub:'Cereali colazione',em:'🥣',tags:['muesli','fiocchi d\'avena','granola','cornflakes']},
   {id:'crackers',nome:'Crackers / Grissini',cat:'Cereali e Derivati',sub:'Crackers',em:'🍘',tags:['integrali','classici','senza glutine']},
-  // CARNE
-  {id:'manzo',nome:'Manzo',cat:'Carne',sub:'Manzo',em:'🥩',tags:['bistecca','hamburger','arrosto','bollito','macinato','tagliata']},
-  {id:'pollo',nome:'Pollo',cat:'Carne',sub:'Pollo',em:'🍗',tags:['petto','cosce','arrosto','fritto','alla griglia']},
-  {id:'maiale',nome:'Maiale',cat:'Carne',sub:'Maiale',em:'🥩',tags:['costine','lonza','pancetta','salsiccia','braciola']},
-  {id:'agnello',nome:'Agnello',cat:'Carne',sub:'Agnello',em:'🍖',tags:['costolette','spezzatino','scottadito']},
-  {id:'tacchino',nome:'Tacchino',cat:'Carne',sub:'Tacchino',em:'🍗',tags:['petto','fettine','macinato']},
-  {id:'coniglio',nome:'Coniglio',cat:'Carne',sub:'Coniglio',em:'🍖',tags:['al forno','in umido','alla cacciatora']},
+  // CARNI ROSSE
+  {id:'manzo',nome:'Manzo',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['bistecca','hamburger','arrosto','bollito','macinato','tagliata','carpaccio']},
+  {id:'maiale',nome:'Maiale',cat:'Carni Rosse',sub:'Suino',em:'🥩',tags:['costine','lonza','pancetta','salsiccia','braciola','porchetta']},
+  {id:'agnello',nome:'Agnello',cat:'Carni Rosse',sub:'Ovino',em:'🍖',tags:['costolette','spezzatino','scottadito','arrosticini']},
+  {id:'vitello',nome:'Vitello',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['scaloppine','ossobuco','cotoletta','spezzatino']},
+  {id:'selvaggina',nome:'Selvaggina',cat:'Carni Rosse',sub:'Selvaggina',em:'🦌',tags:['cinghiale','cervo','capriolo','lepre','fagiano']},
+  // CARNI BIANCHE
+  {id:'pollo',nome:'Pollo',cat:'Carni Bianche',sub:'Pollo',em:'🍗',tags:['petto','cosce','arrosto','fritto','alla griglia','in umido']},
+  {id:'tacchino',nome:'Tacchino',cat:'Carni Bianche',sub:'Tacchino',em:'🦃',tags:['petto','fettine','macinato','arrosto']},
+  {id:'coniglio',nome:'Coniglio',cat:'Carni Bianche',sub:'Coniglio',em:'🐇',tags:['al forno','in umido','alla cacciatora','alla ligure']},
+  {id:'anatra',nome:'Anatra / Oca',cat:'Carni Bianche',sub:'Pollame',em:'🦆',tags:['anatra','oca','al forno','all\'arancia']},
   // PESCE
   {id:'salmone',nome:'Salmone',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','affumicato','alla griglia','al vapore','in crosta']},
   {id:'tonno',nome:'Tonno',cat:'Pesce',sub:'Pesce',em:'🐠',tags:['fresco','in scatola','alla griglia']},
@@ -314,6 +345,23 @@ const FOODS = [
 
 const CATS = [...new Set(FOODS.map(f => f.cat))];
 
+const CAT_ICONS = {
+  'Cereali e Derivati': '🌾',
+  'Carni Rosse':        '🥩',
+  'Carni Bianche':      '🍗',
+  'Pesce':              '🐟',
+  'Salumi':             '🥓',
+  'Uova':               '🥚',
+  'Latticini':          '🧀',
+  'Legumi':             '🫘',
+  'Verdure':            '🥦',
+  'Frutta':             '🍎',
+  'Dolci e Snack':      '🍪',
+  'Bevande':            '☕',
+  'Alcolici':           '🍷',
+  'Condimenti':         '🫒',
+};
+
 const MEAL_TYPES = [
   {id:'colazione',lbl:'Colazione',ic:'🌅'},
   {id:'pranzo',   lbl:'Pranzo',   ic:'☀️'},
@@ -370,15 +418,34 @@ function AddMeal({uid, allFoods, onSaved}) {
   const today = toDateStr(new Date());
   const [date, setDate] = useState(today);
   const [mt,   setMt]   = useState('pranzo');
-  const [q,    setQ]    = useState('');
-  const [showDd, setShowDd] = useState(false);
   const [sel,  setSel]  = useState([]);
   const [tags, setTags] = useState({});
   const [nota, setNota] = useState('');
-  const [saving,setSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // browse state
+  const [inputMode, setInputMode] = useState('browse'); // 'browse' | 'search'
+  const [selCat,  setSelCat]  = useState(null);
+  const [selSub,  setSelSub]  = useState(null);
+
+  // search state
+  const [q, setQ]           = useState('');
+  const [showDd, setShowDd] = useState(false);
   const ddRef = useRef();
 
-  const results = useMemo(() => {
+  const allCats = useMemo(() => [...new Set(allFoods.map(f=>f.cat))], [allFoods]);
+
+  const subsForCat = useMemo(() => {
+    if(!selCat) return [];
+    return [...new Set(allFoods.filter(f=>f.cat===selCat).map(f=>f.sub))];
+  }, [selCat, allFoods]);
+
+  const foodsToShow = useMemo(() => {
+    if(!selCat) return [];
+    return allFoods.filter(f => f.cat===selCat && (!selSub || f.sub===selSub));
+  }, [selCat, selSub, allFoods]);
+
+  const searchResults = useMemo(() => {
     if(q.length < 2) return [];
     const lq = q.toLowerCase();
     return allFoods.filter(f => f.nome.toLowerCase().includes(lq) || f.cat.toLowerCase().includes(lq) || (f.sub||'').toLowerCase().includes(lq)).slice(0,20);
@@ -392,10 +459,16 @@ function AddMeal({uid, allFoods, onSaved}) {
 
   function pick(f) {
     if(!sel.find(x=>x.id===f.id)) { setSel(p=>[...p,f]); setTags(p=>({...p,[f.id]:[]})); }
+    else { remove(f.id); return; }
     setQ(''); setShowDd(false);
   }
   function remove(id) { setSel(p=>p.filter(x=>x.id!==id)); setTags(p=>{const n={...p};delete n[id];return n;}); }
   function toggleTag(fid,t) { setTags(p=>({...p,[fid]:((p[fid]||[]).includes(t) ? p[fid].filter(x=>x!==t) : [...(p[fid]||[]),t])})); }
+
+  function goBack() {
+    if(selSub) { setSelSub(null); }
+    else       { setSelCat(null); }
+  }
 
   async function save() {
     if(!sel.length) return;
@@ -408,6 +481,7 @@ function AddMeal({uid, allFoods, onSaved}) {
         nota: nota.trim()
       });
       setSel([]); setTags({}); setNota('');
+      setSelCat(null); setSelSub(null); setQ('');
       onSaved('✅ Pasto salvato!');
     } catch(e) { onSaved('❌ Errore: '+e.message); }
     setSaving(false);
@@ -437,42 +511,118 @@ function AddMeal({uid, allFoods, onSaved}) {
 
         <div className="ig">
           <label className="lbl">Alimenti</label>
-          <div className="fs-wrap" ref={ddRef}>
-            <input className="inp" placeholder="Cerca alimento (es. pasta, vino, pollo...)"
-              value={q} onChange={e=>{setQ(e.target.value);setShowDd(true);}} onFocus={()=>setShowDd(true)}/>
-            {showDd && results.length>0 && (
-              <div className="fs-dd">
-                {results.map(f=>(
-                  <div key={f.id} className="fs-item" onClick={()=>pick(f)}>
-                    <span>{f.em} {f.nome}</span>
-                    <span className="fs-cat">{f.cat}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+
+          {/* Toggle sfoglia/cerca */}
+          <div className="search-mode-toggle">
+            <button className={`smt-btn ${inputMode==='browse'?'on':''}`} onClick={()=>setInputMode('browse')}>
+              🗂️ Sfoglia categorie
+            </button>
+            <button className={`smt-btn ${inputMode==='search'?'on':''}`} onClick={()=>setInputMode('search')}>
+              🔍 Cerca
+            </button>
           </div>
+
+          {/* MODALITÀ CERCA */}
+          {inputMode==='search' && (
+            <div className="fs-wrap" ref={ddRef}>
+              <input className="inp" placeholder="Cerca alimento (es. pasta, vino, pollo...)"
+                value={q} onChange={e=>{setQ(e.target.value);setShowDd(true);}} onFocus={()=>setShowDd(true)}/>
+              {showDd && searchResults.length>0 && (
+                <div className="fs-dd">
+                  {searchResults.map(f=>(
+                    <div key={f.id} className="fs-item" onClick={()=>pick(f)}>
+                      <span>{f.em} {f.nome}</span>
+                      <span className="fs-cat">{f.cat}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* MODALITÀ SFOGLIA */}
+          {inputMode==='browse' && (
+            <div>
+              {/* breadcrumb + back */}
+              {selCat && (
+                <div className="cb-breadcrumb">
+                  <button className="cb-back" onClick={goBack}>←</button>
+                  <span className="cb-path">
+                    {CAT_ICONS[selCat]||'🍽️'} <strong>{selCat}</strong>
+                    {selSub && <> › {selSub}</>}
+                  </span>
+                </div>
+              )}
+
+              {/* griglia categorie */}
+              {!selCat && (
+                <div className="cb-grid">
+                  {allCats.map(cat=>(
+                    <div key={cat} className="cb-cat" onClick={()=>{setSelCat(cat);setSelSub(null);}}>
+                      <span className="cb-cat-em">{CAT_ICONS[cat]||'🍽️'}</span>
+                      <span className="cb-cat-name">{cat}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* sotto-categorie */}
+              {selCat && subsForCat.length > 1 && (
+                <div className="cb-subs">
+                  <div className={`cb-sub ${!selSub?'on':''}`} onClick={()=>setSelSub(null)}>Tutti</div>
+                  {subsForCat.map(s=>(
+                    <div key={s} className={`cb-sub ${selSub===s?'on':''}`} onClick={()=>setSelSub(s)}>{s}</div>
+                  ))}
+                </div>
+              )}
+
+              {/* lista alimenti */}
+              {selCat && (
+                <div className="cb-foods">
+                  {foodsToShow.map(f=>{
+                    const isAdded = !!sel.find(x=>x.id===f.id);
+                    return (
+                      <div key={f.id} className={`cb-food ${isAdded?'added':''}`} onClick={()=>pick(f)}>
+                        <span className="cb-food-em">{f.em}</span>
+                        <div style={{flex:1}}>
+                          <div className="cb-food-name">{f.nome}</div>
+                          {f.sub && f.sub!==f.cat && <div className="cb-food-sub">{f.sub}</div>}
+                        </div>
+                        {isAdded && <span className="cb-food-check">✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* ALIMENTI SELEZIONATI */}
         {sel.length>0 && (
-          <div className="sf-list">
-            {sel.map(f=>(
-              <div key={f.id} className="sf-item">
-                <span className="sf-em">{f.em}</span>
-                <div className="sf-info">
-                  <div className="sf-name">{f.nome}</div>
-                  {f.tags && f.tags.length>0 && (
-                    <div className="tag-wrap">
-                      {f.tags.map(t=>(
-                        <span key={t} className={`tag ${(tags[f.id]||[]).includes(t)?'on':''}`}
-                          onClick={()=>toggleTag(f.id,t)}>{t}</span>
-                      ))}
-                    </div>
-                  )}
+          <>
+            <div className="divider"/>
+            <label className="lbl" style={{marginBottom:8,display:'block'}}>Nel pasto ({sel.length})</label>
+            <div className="sf-list">
+              {sel.map(f=>(
+                <div key={f.id} className="sf-item">
+                  <span className="sf-em">{f.em}</span>
+                  <div className="sf-info">
+                    <div className="sf-name">{f.nome}</div>
+                    {f.tags && f.tags.length>0 && (
+                      <div className="tag-wrap">
+                        {f.tags.map(t=>(
+                          <span key={t} className={`tag ${(tags[f.id]||[]).includes(t)?'on':''}`}
+                            onClick={()=>toggleTag(f.id,t)}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button className="ico-btn" onClick={()=>remove(f.id)}>✕</button>
                 </div>
-                <button className="ico-btn" onClick={()=>remove(f.id)}>✕</button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
 
         <div className="ig">
@@ -492,18 +642,26 @@ function AddMeal({uid, allFoods, onSaved}) {
    DIARY
 ============================================================ */
 function Diary({uid}) {
-  const [logs, setLogs]   = useState([]);
-  const [days, setDays]   = useState(7);
+  const [logs, setLogs]     = useState([]);
+  const [days, setDays]     = useState(7);
   const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState(null);
 
   useEffect(()=>{ load(); }, [days]);
 
   async function load() {
     setLoading(true);
-    const start = new Date(); start.setDate(start.getDate()-days); start.setHours(0,0,0,0);
-    const end   = new Date(); end.setHours(23,59,59,999);
-    const data  = await getLogs(uid, start, end);
-    setLogs(data); setLoading(false);
+    setError(null);
+    try {
+      const start = new Date(); start.setDate(start.getDate()-days); start.setHours(0,0,0,0);
+      const end   = new Date(); end.setHours(23,59,59,999);
+      const data  = await getLogs(uid, start, end);
+      setLogs(data);
+    } catch(e) {
+      console.error('Diary error:', e);
+      setError(e.message || 'Errore caricamento');
+    }
+    setLoading(false);
   }
 
   async function del(id) { await delMeal(id); setLogs(p=>p.filter(l=>l.id!==id)); }
@@ -528,6 +686,21 @@ function Diary({uid}) {
       </div>
 
       {loading ? <div className="spin-wrap"><div className="spinner"/></div>
+      : error ? (
+        <div className="card" style={{borderColor:'var(--red)'}}>
+          <div style={{fontSize:13,color:'var(--red)',marginBottom:8}}>⚠️ Errore caricamento</div>
+          <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.6,marginBottom:10}}>{error}</div>
+          {error.toLowerCase().includes('index') && (
+            <div style={{fontSize:11,color:'var(--accent)',lineHeight:1.6,marginBottom:10}}>
+              👆 Firestore richiede un indice composito. Copia il link nell'errore qui sopra e aprilo nel browser per crearlo automaticamente.<br/><br/>
+              Oppure vai su: <strong>Firebase Console → Firestore → Indici → Aggiungi indice</strong><br/>
+              Collection: <code style={{background:'var(--surface2)',padding:'1px 5px',borderRadius:3}}>foodDiary_logs</code><br/>
+              Campi: <code style={{background:'var(--surface2)',padding:'1px 5px',borderRadius:3}}>userId ASC, data DESC</code>
+            </div>
+          )}
+          <button className="btn btn-s btn-full" onClick={load}>🔄 Riprova</button>
+        </div>
+      )
       : grouped.length===0 ? (
         <div className="empty"><div className="empty-ic">📔</div><div className="empty-tx">Nessun pasto registrato in questo periodo.<br/>Inizia aggiungendo il tuo primo pasto!</div></div>
       ) : grouped.map(([dk, dayLogs])=>(
@@ -607,42 +780,48 @@ function Stats({uid, allFoods}) {
   async function doCount() {
     if(!selFood) return;
     setLoading(true);
-    const {start,end}=getDates();
-    const logs=await getLogs(uid,start,end);
-    const count=logs.reduce((acc,l)=>{
-      const hit=(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase());
-      return acc+(hit?1:0);
-    },0);
-    setRes({type:'count',count,food:selFood,period:getPeriodLabel()});
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      const count=logs.reduce((acc,l)=>{
+        const hit=(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase());
+        return acc+(hit?1:0);
+      },0);
+      setRes({type:'count',count,food:selFood,period:getPeriodLabel()});
+    } catch(e) { setRes({type:'error',msg:e.message}); }
     setLoading(false);
   }
 
   async function doLast() {
     if(!selFood) return;
     setLoading(true);
-    const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
-    const logs=s.docs.map(d=>({id:d.id,...d.data()}));
-    const found=logs.find(l=>(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase()));
-    if(found) {
-      const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
-      setRes({type:'last',food:selFood,date:dt,tipoPasto:found.tipoPasto,nota:found.nota});
-    } else {
-      setRes({type:'last',food:selFood,date:null});
-    }
+    try {
+      const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
+      const logs=s.docs.map(d=>({id:d.id,...d.data()}));
+      const found=logs.find(l=>(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase()));
+      if(found) {
+        const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
+        setRes({type:'last',food:selFood,date:dt,tipoPasto:found.tipoPasto,nota:found.nota});
+      } else {
+        setRes({type:'last',food:selFood,date:null});
+      }
+    } catch(e) { setRes({type:'error',msg:e.message}); }
     setLoading(false);
   }
 
   async function loadTop() {
     setTopLoad(true);
-    const {start,end}=getDates();
-    const logs=await getLogs(uid,start,end);
-    const cnt={};
-    logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
-      const k=a.nome;
-      if(!cnt[k]) cnt[k]={nome:a.nome,em:a.em||'🍽️',cat:a.cat||'',count:0};
-      cnt[k].count++;
-    }));
-    setTop(Object.values(cnt).sort((a,b)=>b.count-a.count).slice(0,12));
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      const cnt={};
+      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
+        const k=a.nome;
+        if(!cnt[k]) cnt[k]={nome:a.nome,em:a.em||'🍽️',cat:a.cat||'',count:0};
+        cnt[k].count++;
+      }));
+      setTop(Object.values(cnt).sort((a,b)=>b.count-a.count).slice(0,12));
+    } catch(e) { console.error('loadTop error:',e); setTop([]); }
     setTopLoad(false);
   }
 
