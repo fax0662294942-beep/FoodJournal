@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FoodJournal</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#1a1a17"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <!-- React & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #1a1a17;
+      --surface: #242420;
+      --surface2: #2e2e29;
+      --border: #38382f;
+      --accent: #e8a84c;
+      --accent-dim: rgba(232,168,76,0.12);
+      --accent-border: rgba(232,168,76,0.35);
+      --green: #7ab87a;
+      --green-dim: rgba(122,184,122,0.12);
+      --red: #e87a7a;
+      --text: #f0ede4;
+      --text2: #a8a49a;
+      --text3: #5e5a52;
+      --r: 14px;
+      --r-sm: 8px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;-webkit-tap-highlight-color:transparent;}
+    #root{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;}
+    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+    /* HEADER */
+    .hdr{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+    .hdr-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--accent);letter-spacing:-.3px;}
+    .hdr-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:2px solid var(--accent);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;}
+    .avatar img{width:100%;height:100%;object-fit:cover;}
+
+    /* CONTENT */
+    .content{flex:1;overflow-y:auto;padding:14px 14px 0;}
+
+    /* TAB BAR */
+    .tabs{display:flex;background:var(--surface);border-top:1px solid var(--border);padding:6px 0 10px;flex-shrink:0;}
+    .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;cursor:pointer;border:none;background:none;color:var(--text3);transition:color .15s;}
+    .tab.on{color:var(--accent);}
+    .tab-ic{font-size:20px;line-height:1;}
+    .tab-lb{font-size:10px;font-weight:500;letter-spacing:.3px;}
+
+    /* CARDS */
+    .card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:15px;margin-bottom:12px;}
+    .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--accent);margin-bottom:12px;}
+
+    /* INPUTS */
+    .ig{margin-bottom:13px;}
+    .lbl{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.9px;margin-bottom:5px;display:block;}
+    .inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;}
+    .inp:focus{border-color:var(--accent);}
+    .inp::placeholder{color:var(--text3);}
+    select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235e5a52' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+    textarea.inp{resize:none;height:66px;}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s;}
+    .btn:disabled{opacity:.5;cursor:default;}
+    .btn-p{background:var(--accent);color:#1a1a17;}
+    .btn-p:hover:not(:disabled){filter:brightness(1.08);}
+    .btn-s{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+    .btn-full{width:100%;}
+    .btn-sm{padding:6px 11px;font-size:12px;}
+    .ico-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:17px;padding:4px;transition:color .15s;line-height:1;}
+    .ico-btn:hover{color:var(--text);}
+
+    /* MEAL TYPE */
+    .mt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+    .mt-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 4px;cursor:pointer;text-align:center;transition:all .15s;}
+    .mt-btn.on{background:var(--accent-dim);border-color:var(--accent);}
+    .mt-ic{font-size:20px;display:block;margin-bottom:3px;}
+    .mt-lb{font-size:11px;color:var(--text2);}
+    .mt-btn.on .mt-lb{color:var(--accent);}
+
+    /* FOOD SEARCH */
+    .fs-wrap{position:relative;}
+    .fs-dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);max-height:210px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+    .fs-item{padding:9px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .1s;}
+    .fs-item:hover{background:var(--surface);}
+    .fs-cat{font-size:11px;color:var(--text3);}
+
+    /* TAGS */
+    .tag-wrap{display:flex;flex-wrap:wrap;gap:5px;}
+    .tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
+    .tag.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+
+    /* SELECTED FOODS */
+    .sf-list{display:flex;flex-direction:column;gap:7px;margin-bottom:11px;}
+    .sf-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border);}
+    .sf-em{font-size:20px;flex-shrink:0;margin-top:1px;}
+    .sf-info{flex:1;min-width:0;}
+    .sf-name{font-size:13px;font-weight:500;margin-bottom:4px;}
+
+    /* DIARY */
+    .dy-day-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px;margin-top:2px;}
+    .dy-day-lbl{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;}
+    .dy-dot{flex:1;height:1px;background:var(--border);}
+    .dy-meal{background:var(--surface);border-radius:var(--r-sm);border:1px solid var(--border);padding:11px;margin-bottom:7px;}
+    .dy-meal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+    .dy-mt{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}
+    .dy-chips{display:flex;flex-wrap:wrap;gap:5px;}
+    .dy-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--surface2);border-radius:20px;font-size:12px;color:var(--text2);border:1px solid var(--border);}
+    .dy-note{margin-top:7px;font-size:11px;color:var(--text3);font-style:italic;padding-left:2px;}
+
+    /* PILLS */
+    .pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;}
+    .pill{padding:5px 11px;border-radius:20px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
+    .pill.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+
+    /* STATS */
+    .stat-card{background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+    .stat-qlbl{font-size:12px;color:var(--text2);margin-bottom:6px;}
+    .stat-num{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-unit{font-size:13px;color:var(--text2);margin-top:3px;}
+    .stat-date{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1.3;}
+    .stat-meta{font-size:12px;color:var(--text3);margin-top:5px;}
+
+    /* MONTH GRID */
+    .mo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px;}
+    .mo-btn{padding:8px 4px;border-radius:var(--r-sm);font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;}
+    .mo-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+
+    /* TOP FOODS */
+    .tf-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+    .tf-row:last-child{border-bottom:none;}
+    .tf-rank{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--text3);width:22px;text-align:center;flex-shrink:0;}
+    .tf-track{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+    .tf-fill{height:100%;background:var(--accent);border-radius:3px;}
+    .tf-cnt{font-size:12px;color:var(--text2);min-width:28px;text-align:right;flex-shrink:0;}
+    .tf-name{font-size:12px;min-width:80px;flex-shrink:0;}
+
+    /* CATALOG */
+    .cat-hdr{display:flex;align-items:center;gap:7px;padding:10px 2px;cursor:pointer;border-bottom:1px solid var(--border);}
+    .cat-hdr-name{font-size:13px;font-weight:500;flex:1;}
+    .cat-hdr-cnt{font-size:11px;color:var(--text3);}
+    .cat-items{padding:6px 0;display:flex;flex-direction:column;gap:2px;}
+    .cat-food{display:flex;align-items:center;gap:9px;padding:7px 3px;}
+    .cat-food-em{font-size:17px;}
+    .cat-food-name{font-size:13px;flex:1;}
+    .cat-food-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+
+    /* BADGE */
+    .badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+    .badge-g{background:var(--green-dim);color:var(--green);border:1px solid rgba(122,184,122,.3);}
+
+    /* LOGIN */
+    .login{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:28px;text-align:center;background:var(--bg);}
+    .login-logo{font-size:52px;margin-bottom:10px;line-height:1;}
+    .login-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;margin-bottom:7px;}
+    .login-sub{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:38px;max-width:280px;}
+    .login-btn{display:flex;align-items:center;gap:11px;padding:13px 26px;background:#fff;color:#333;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:transform .15s,box-shadow .15s;}
+    .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 18px;font-size:13px;white-space:nowrap;z-index:999;animation:tin .2s ease;}
+    @keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+    /* MISC */
+    .spin-wrap{display:flex;align-items:center;justify-content:center;padding:32px;}
+    .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .empty{text-align:center;padding:36px 16px;color:var(--text3);}
+    .empty-ic{font-size:36px;margin-bottom:10px;}
+    .empty-tx{font-size:13px;line-height:1.55;}
+    .loading-full{display:flex;align-items:center;justify-content:center;height:100dvh;}
+    .divider{height:1px;background:var(--border);margin:11px 0;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDue3aMzi-8-zflMvlgdGp1TzzId1CZNaI",
+    authDomain: "viaggi-camper.firebaseapp.com",
+    projectId: "viaggi-camper",
+    storageBucket: "viaggi-camper.firebasestorage.app",
+    messagingSenderId: "172431561795",
+    appId: "1:172431561795:web:ae6ef3e9c2bbdfeb2d70f6"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ============================================================
+   CATALOGO PREDEFINITO
+============================================================ */
+const FOODS = [
+  // CEREALI E DERIVATI
+  {id:'pasta',nome:'Pasta',cat:'Cereali e Derivati',sub:'Pasta',em:'🍝',tags:['corta','lunga','ripiena','integrale','fresca','al forno']},
+  {id:'riso',nome:'Riso',cat:'Cereali e Derivati',sub:'Riso',em:'🍚',tags:['bianco','integrale','basmati','risotto']},
+  {id:'pane',nome:'Pane',cat:'Cereali e Derivati',sub:'Pane',em:'🍞',tags:['bianco','integrale','di segale','tostato','focaccia','grissini']},
+  {id:'pizza',nome:'Pizza',cat:'Cereali e Derivati',sub:'Pizza',em:'🍕',tags:['margherita','marinara','con verdure','con carne','bianca']},
+  {id:'gnocchi',nome:'Gnocchi',cat:'Cereali e Derivati',sub:'Gnocchi',em:'🥟',tags:['di patate','di ricotta']},
+  {id:'polenta',nome:'Polenta',cat:'Cereali e Derivati',sub:'Polenta',em:'🫓',tags:['morbida','grigliata','fritta']},
+  {id:'couscous',nome:'Couscous',cat:'Cereali e Derivati',sub:'Couscous',em:'🫙',tags:[]},
+  {id:'cereali_col',nome:'Cereali da colazione',cat:'Cereali e Derivati',sub:'Cereali colazione',em:'🥣',tags:['muesli','fiocchi d\'avena','granola','cornflakes']},
+  {id:'crackers',nome:'Crackers / Grissini',cat:'Cereali e Derivati',sub:'Crackers',em:'🍘',tags:['integrali','classici','senza glutine']},
+  // CARNE
+  {id:'manzo',nome:'Manzo',cat:'Carne',sub:'Manzo',em:'🥩',tags:['bistecca','hamburger','arrosto','bollito','macinato','tagliata']},
+  {id:'pollo',nome:'Pollo',cat:'Carne',sub:'Pollo',em:'🍗',tags:['petto','cosce','arrosto','fritto','alla griglia']},
+  {id:'maiale',nome:'Maiale',cat:'Carne',sub:'Maiale',em:'🥩',tags:['costine','lonza','pancetta','salsiccia','braciola']},
+  {id:'agnello',nome:'Agnello',cat:'Carne',sub:'Agnello',em:'🍖',tags:['costolette','spezzatino','scottadito']},
+  {id:'tacchino',nome:'Tacchino',cat:'Carne',sub:'Tacchino',em:'🍗',tags:['petto','fettine','macinato']},
+  {id:'coniglio',nome:'Coniglio',cat:'Carne',sub:'Coniglio',em:'🍖',tags:['al forno','in umido','alla cacciatora']},
+  // PESCE
+  {id:'salmone',nome:'Salmone',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','affumicato','alla griglia','al vapore','in crosta']},
+  {id:'tonno',nome:'Tonno',cat:'Pesce',sub:'Pesce',em:'🐠',tags:['fresco','in scatola','alla griglia']},
+  {id:'merluzzo',nome:'Merluzzo / Baccalà',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','baccalà','fritto','al vapore']},
+  {id:'branzino',nome:'Branzino / Spigola',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','al sale','alla griglia']},
+  {id:'orata',nome:'Orata',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','alla griglia']},
+  {id:'gamberetti',nome:'Gamberetti / Gamberi',cat:'Pesce',sub:'Frutti di mare',em:'🦐',tags:['gamberi','gamberoni','saltati','in insalata']},
+  {id:'cozze',nome:'Cozze / Vongole',cat:'Pesce',sub:'Frutti di mare',em:'🦪',tags:['cozze','vongole','alla marinara','gratinate']},
+  {id:'calamari',nome:'Calamari / Seppie',cat:'Pesce',sub:'Frutti di mare',em:'🦑',tags:['fritti','in umido','alla griglia']},
+  {id:'sardine',nome:'Sardine / Acciughe',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['in scatola','fresche','marinate','sott\'olio']},
+  // SALUMI
+  {id:'prosciutto_cotto',nome:'Prosciutto cotto',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['alta qualità','di Praga']},
+  {id:'prosciutto_crudo',nome:'Prosciutto crudo',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['San Daniele','di Parma','di Norcia']},
+  {id:'salame',nome:'Salame',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['Milano','piccante','di Felino','ungherese']},
+  {id:'mortadella',nome:'Mortadella',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['classica','con pistacchi']},
+  {id:'bresaola',nome:'Bresaola',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[]},
+  {id:'speck',nome:'Speck',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[]},
+  // UOVA
+  {id:'uova',nome:'Uova',cat:'Uova',sub:'Uova',em:'🥚',tags:['fritte','strapazzate','bollite','in camicia','omelette','al tegame','sode']},
+  // LATTICINI
+  {id:'latte',nome:'Latte',cat:'Latticini',sub:'Latte',em:'🥛',tags:['intero','parzialmente scremato','vegetale','di soia','di avena']},
+  {id:'yogurt',nome:'Yogurt',cat:'Latticini',sub:'Yogurt',em:'🫙',tags:['bianco','alla frutta','greco','kefir']},
+  {id:'mozzarella',nome:'Mozzarella',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['fiordilatte','di bufala','affumicata']},
+  {id:'parmigiano',nome:'Parmigiano / Grana',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['parmigiano','grana padano','grattugiato']},
+  {id:'ricotta',nome:'Ricotta',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['di mucca','di pecora']},
+  {id:'formaggio',nome:'Formaggio stagionato',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['pecorino','gorgonzola','brie','emmental','asiago','scamorza']},
+  // LEGUMI
+  {id:'fagioli',nome:'Fagioli',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['borlotti','cannellini','neri','in scatola']},
+  {id:'ceci',nome:'Ceci',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['in scatola','hummus','in padella']},
+  {id:'lenticchie',nome:'Lenticchie',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['rosse','verdi','beluga','in umido']},
+  {id:'piselli',nome:'Piselli',cat:'Legumi',sub:'Legumi',em:'🫛',tags:['freschi','surgelati','in scatola']},
+  // VERDURE
+  {id:'insalata',nome:'Insalata',cat:'Verdure',sub:'Insalata',em:'🥗',tags:['verde','mista','rucola','spinacino','iceberg','radicchio']},
+  {id:'pomodori',nome:'Pomodori',cat:'Verdure',sub:'Pomodori',em:'🍅',tags:['ciliegini','pachino','san marzano','pelati']},
+  {id:'zucchine',nome:'Zucchine',cat:'Verdure',sub:'Zucchine',em:'🥒',tags:['grigliate','trifolate','in umido','crude']},
+  {id:'carote',nome:'Carote',cat:'Verdure',sub:'Carote',em:'🥕',tags:['crude','cotte','grattugiate']},
+  {id:'patate',nome:'Patate',cat:'Verdure',sub:'Patate',em:'🥔',tags:['al forno','bollite','fritte','purè','novelle']},
+  {id:'melanzane',nome:'Melanzane',cat:'Verdure',sub:'Melanzane',em:'🍆',tags:['grigliate','parmigiana','al forno','in agrodolce']},
+  {id:'peperoni',nome:'Peperoni',cat:'Verdure',sub:'Peperoni',em:'🫑',tags:['rossi','gialli','verdi','arrostiti','in padella']},
+  {id:'spinaci',nome:'Spinaci',cat:'Verdure',sub:'Spinaci',em:'🥬',tags:['freschi','saltati','al vapore','surgelati']},
+  {id:'broccoli',nome:'Broccoli',cat:'Verdure',sub:'Broccoli',em:'🥦',tags:['al vapore','ripassati','al forno']},
+  {id:'cipolla_aglio',nome:'Cipolla / Aglio',cat:'Verdure',sub:'Aromatici',em:'🧅',tags:['cipolla','aglio','porro','scalogno']},
+  {id:'funghi',nome:'Funghi',cat:'Verdure',sub:'Funghi',em:'🍄',tags:['champignon','porcini','pleurotus','trifolati','secchi']},
+  {id:'cavolo',nome:'Cavolfiore / Cavolo',cat:'Verdure',sub:'Cavoli',em:'🥦',tags:['cavolfiore','broccolo romanesco','cavolo cappuccio','verza','kale']},
+  // FRUTTA
+  {id:'mela',nome:'Mela / Pera',cat:'Frutta',sub:'Frutta',em:'🍎',tags:['mela','pera','cotogna']},
+  {id:'banana',nome:'Banana',cat:'Frutta',sub:'Frutta',em:'🍌',tags:[]},
+  {id:'agrumi',nome:'Agrumi',cat:'Frutta',sub:'Frutta',em:'🍊',tags:['arancia','mandarino','limone','pompelmo','clementina']},
+  {id:'pesca',nome:'Pesca / Albicocca',cat:'Frutta',sub:'Frutta',em:'🍑',tags:['pesca','albicocca','nettarina','susina']},
+  {id:'fragole',nome:'Fragole',cat:'Frutta',sub:'Frutta',em:'🍓',tags:['fresche','con panna']},
+  {id:'uva',nome:'Uva',cat:'Frutta',sub:'Frutta',em:'🍇',tags:['bianca','rossa','nera']},
+  {id:'kiwi',nome:'Kiwi',cat:'Frutta',sub:'Frutta',em:'🥝',tags:[]},
+  {id:'melone',nome:'Melone / Anguria',cat:'Frutta',sub:'Frutta',em:'🍉',tags:['melone','anguria','melone bianco']},
+  {id:'frutta_secca',nome:'Frutta secca',cat:'Frutta',sub:'Frutta secca',em:'🥜',tags:['noci','mandorle','nocciole','pistacchi','anacardi','pinoli','datteri']},
+  // DOLCI E SNACK
+  {id:'biscotti',nome:'Biscotti',cat:'Dolci e Snack',sub:'Biscotti',em:'🍪',tags:['secchi','al cioccolato','integrali','al burro','tipo oreo']},
+  {id:'torta',nome:'Torta / Crostata',cat:'Dolci e Snack',sub:'Torte',em:'🎂',tags:['crostata','di frutta','al cioccolato','cheesecake','tiramisù','creme caramel']},
+  {id:'cioccolato',nome:'Cioccolato',cat:'Dolci e Snack',sub:'Cioccolato',em:'🍫',tags:['fondente','al latte','bianco','con frutta secca']},
+  {id:'gelato',nome:'Gelato',cat:'Dolci e Snack',sub:'Gelato',em:'🍦',tags:['alla frutta','al cioccolato','alla crema','sorbetto']},
+  {id:'croissant',nome:'Croissant / Brioche',cat:'Dolci e Snack',sub:'Pasticceria',em:'🥐',tags:['vuoto','con marmellata','con crema','cornetto']},
+  {id:'snack',nome:'Snack / Patatine',cat:'Dolci e Snack',sub:'Snack',em:'🍿',tags:['patatine','chips','popcorn','merendina','barretta']},
+  // BEVANDE
+  {id:'caffe',nome:'Caffè',cat:'Bevande',sub:'Caffè',em:'☕',tags:['espresso','americano','cappuccino','macchiato','lungo','decaffeinato','marocchino']},
+  {id:'te',nome:'Tè / Infuso',cat:'Bevande',sub:'Tè',em:'🍵',tags:['verde','nero','bianco','camomilla','infuso','tisana']},
+  {id:'succo',nome:'Succo di frutta',cat:'Bevande',sub:'Succhi',em:'🧃',tags:['arancia','mela','pesca','misto','centrifugato','frullato']},
+  {id:'bibite',nome:'Bibite',cat:'Bevande',sub:'Bibite',em:'🥤',tags:['cola','aranciata','limonata','gassata','energy drink','tonica']},
+  {id:'acqua',nome:'Acqua',cat:'Bevande',sub:'Acqua',em:'💧',tags:['naturale','frizzante']},
+  // ALCOLICI
+  {id:'vino',nome:'Vino',cat:'Alcolici',sub:'Vino',em:'🍷',tags:['rosso','bianco','rosé','bollicine','prosecco','champagne','passito']},
+  {id:'birra',nome:'Birra',cat:'Alcolici',sub:'Birra',em:'🍺',tags:['chiara','scura','artigianale','IPA','rossa','senza glutine','weizen']},
+  {id:'liquori',nome:'Liquori / Distillati',cat:'Alcolici',sub:'Liquori',em:'🥃',tags:['amaro','grappa','whisky','rum','gin','vodka','tequila','limoncello','sambuca']},
+  {id:'cocktail',nome:'Cocktail / Aperitivo',cat:'Alcolici',sub:'Cocktail',em:'🍹',tags:['aperol spritz','negroni','gin tonic','mojito','margarita','americano','hugo']},
+  // CONDIMENTI
+  {id:'olio',nome:'Olio',cat:'Condimenti',sub:'Grassi',em:'🫒',tags:['extravergine d\'oliva','di semi','di cocco']},
+  {id:'burro',nome:'Burro',cat:'Condimenti',sub:'Grassi',em:'🧈',tags:['salato','non salato','chiarificato']},
+  {id:'salse',nome:'Salse',cat:'Condimenti',sub:'Salse',em:'🫙',tags:['ketchup','maionese','pesto','ragù','besciamella','salsa di pomodoro','tahini']},
+];
+
+const CATS = [...new Set(FOODS.map(f => f.cat))];
+
+const MEAL_TYPES = [
+  {id:'colazione',lbl:'Colazione',ic:'🌅'},
+  {id:'pranzo',   lbl:'Pranzo',   ic:'☀️'},
+  {id:'cena',     lbl:'Cena',     ic:'🌙'},
+  {id:'spuntino', lbl:'Spuntino', ic:'🍎'},
+];
+const MT_MAP = Object.fromEntries(MEAL_TYPES.map(m => [m.id, m]));
+
+const MONTHS_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const MONTHS_L = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+/* ============================================================
+   UTILS
+============================================================ */
+function toDateStr(d) { return (d instanceof Date ? d : new Date(d)).toISOString().split('T')[0]; }
+function dayStart(s) { return new Date(s + 'T00:00:00'); }
+function dayEnd(s)   { return new Date(s + 'T23:59:59'); }
+function weekStart() { const d=new Date(); d.setDate(d.getDate()-d.getDay()+(d.getDay()===0?-6:1)); d.setHours(0,0,0,0); return d; }
+function monthStart(y,m) { return new Date(y,m,1,0,0,0); }
+function monthEnd(y,m)   { return new Date(y,m+1,0,23,59,59); }
+function fmtDate(d) {
+  const dt = d instanceof Date ? d : new Date(d);
+  const t=toDateStr(new Date()), y=toDateStr(new Date(Date.now()-86400000));
+  const s=toDateStr(dt);
+  if(s===t) return 'Oggi';
+  if(s===y) return 'Ieri';
+  return dt.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+}
+
+/* ============================================================
+   FIREBASE HELPERS
+============================================================ */
+async function saveMeal(uid, data) {
+  await db.collection('foodDiary_logs').add({...data, userId:uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+}
+async function delMeal(id) { await db.collection('foodDiary_logs').doc(id).delete(); }
+async function getLogs(uid, start, end) {
+  const s = await db.collection('foodDiary_logs').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','desc').get();
+  return s.docs.map(d => ({id:d.id,...d.data()}));
+}
+async function getCustomFoods(uid) {
+  const s = await db.collection('foodDiary_custom_foods').where('userId','==',uid).get();
+  return s.docs.map(d => ({id:d.id,...d.data()}));
+}
+async function addCustomFood(uid, food) {
+  const r = await db.collection('foodDiary_custom_foods').add({...food, userId:uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  return r.id;
+}
+
+/* ============================================================
+   ADD MEAL
+============================================================ */
+function AddMeal({uid, allFoods, onSaved}) {
+  const today = toDateStr(new Date());
+  const [date, setDate] = useState(today);
+  const [mt,   setMt]   = useState('pranzo');
+  const [q,    setQ]    = useState('');
+  const [showDd, setShowDd] = useState(false);
+  const [sel,  setSel]  = useState([]);
+  const [tags, setTags] = useState({});
+  const [nota, setNota] = useState('');
+  const [saving,setSaving] = useState(false);
+  const ddRef = useRef();
+
+  const results = useMemo(() => {
+    if(q.length < 2) return [];
+    const lq = q.toLowerCase();
+    return allFoods.filter(f => f.nome.toLowerCase().includes(lq) || f.cat.toLowerCase().includes(lq) || (f.sub||'').toLowerCase().includes(lq)).slice(0,20);
+  }, [q, allFoods]);
+
+  useEffect(() => {
+    function handler(e) { if(ddRef.current && !ddRef.current.contains(e.target)) setShowDd(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function pick(f) {
+    if(!sel.find(x=>x.id===f.id)) { setSel(p=>[...p,f]); setTags(p=>({...p,[f.id]:[]})); }
+    setQ(''); setShowDd(false);
+  }
+  function remove(id) { setSel(p=>p.filter(x=>x.id!==id)); setTags(p=>{const n={...p};delete n[id];return n;}); }
+  function toggleTag(fid,t) { setTags(p=>({...p,[fid]:((p[fid]||[]).includes(t) ? p[fid].filter(x=>x!==t) : [...(p[fid]||[]),t])})); }
+
+  async function save() {
+    if(!sel.length) return;
+    setSaving(true);
+    try {
+      await saveMeal(uid, {
+        data: dayStart(date),
+        tipoPasto: mt,
+        alimenti: sel.map(f=>({foodId:f.id,nome:f.nome,em:f.em||'🍽️',cat:f.cat,sub:f.sub,tags:tags[f.id]||[]})),
+        nota: nota.trim()
+      });
+      setSel([]); setTags({}); setNota('');
+      onSaved('✅ Pasto salvato!');
+    } catch(e) { onSaved('❌ Errore: '+e.message); }
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">✍️ Nuovo pasto</div>
+
+        <div className="ig">
+          <label className="lbl">Data</label>
+          <input type="date" className="inp" value={date} max={today} onChange={e=>setDate(e.target.value)}/>
+        </div>
+
+        <div className="ig">
+          <label className="lbl">Tipo pasto</label>
+          <div className="mt-grid">
+            {MEAL_TYPES.map(m=>(
+              <div key={m.id} className={`mt-btn ${mt===m.id?'on':''}`} onClick={()=>setMt(m.id)}>
+                <span className="mt-ic">{m.ic}</span>
+                <span className="mt-lb">{m.lbl}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="ig">
+          <label className="lbl">Alimenti</label>
+          <div className="fs-wrap" ref={ddRef}>
+            <input className="inp" placeholder="Cerca alimento (es. pasta, vino, pollo...)"
+              value={q} onChange={e=>{setQ(e.target.value);setShowDd(true);}} onFocus={()=>setShowDd(true)}/>
+            {showDd && results.length>0 && (
+              <div className="fs-dd">
+                {results.map(f=>(
+                  <div key={f.id} className="fs-item" onClick={()=>pick(f)}>
+                    <span>{f.em} {f.nome}</span>
+                    <span className="fs-cat">{f.cat}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {sel.length>0 && (
+          <div className="sf-list">
+            {sel.map(f=>(
+              <div key={f.id} className="sf-item">
+                <span className="sf-em">{f.em}</span>
+                <div className="sf-info">
+                  <div className="sf-name">{f.nome}</div>
+                  {f.tags && f.tags.length>0 && (
+                    <div className="tag-wrap">
+                      {f.tags.map(t=>(
+                        <span key={t} className={`tag ${(tags[f.id]||[]).includes(t)?'on':''}`}
+                          onClick={()=>toggleTag(f.id,t)}>{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button className="ico-btn" onClick={()=>remove(f.id)}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="ig">
+          <label className="lbl">Note (opzionale)</label>
+          <textarea className="inp" placeholder="Dove hai mangiato, com'era, con chi..." value={nota} onChange={e=>setNota(e.target.value)}/>
+        </div>
+
+        <button className="btn btn-p btn-full" onClick={save} disabled={saving||sel.length===0}>
+          {saving ? 'Salvataggio...' : sel.length===0 ? 'Seleziona almeno un alimento' : `💾 Salva pasto (${sel.length} ${sel.length===1?'alimento':'alimenti'})`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   DIARY
+============================================================ */
+function Diary({uid}) {
+  const [logs, setLogs]   = useState([]);
+  const [days, setDays]   = useState(7);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{ load(); }, [days]);
+
+  async function load() {
+    setLoading(true);
+    const start = new Date(); start.setDate(start.getDate()-days); start.setHours(0,0,0,0);
+    const end   = new Date(); end.setHours(23,59,59,999);
+    const data  = await getLogs(uid, start, end);
+    setLogs(data); setLoading(false);
+  }
+
+  async function del(id) { await delMeal(id); setLogs(p=>p.filter(l=>l.id!==id)); }
+
+  const grouped = useMemo(()=>{
+    const g={};
+    logs.forEach(l=>{
+      const d = l.data?.toDate ? l.data.toDate() : new Date(l.data);
+      const k = toDateStr(d);
+      if(!g[k]) g[k]=[];
+      g[k].push(l);
+    });
+    return Object.entries(g).sort((a,b)=>b[0].localeCompare(a[0]));
+  }, [logs]);
+
+  return (
+    <div>
+      <div className="pills">
+        {[7,14,30,60].map(d=>(
+          <div key={d} className={`pill ${days===d?'on':''}`} onClick={()=>setDays(d)}>Ultimi {d}g</div>
+        ))}
+      </div>
+
+      {loading ? <div className="spin-wrap"><div className="spinner"/></div>
+      : grouped.length===0 ? (
+        <div className="empty"><div className="empty-ic">📔</div><div className="empty-tx">Nessun pasto registrato in questo periodo.<br/>Inizia aggiungendo il tuo primo pasto!</div></div>
+      ) : grouped.map(([dk, dayLogs])=>(
+        <div key={dk} style={{marginBottom:18}}>
+          <div className="dy-day-hdr">
+            <span className="dy-day-lbl">{fmtDate(dk)}</span>
+            <div className="dy-dot"/>
+          </div>
+          {dayLogs.map(l=>{
+            const m = MT_MAP[l.tipoPasto]||{ic:'🍽️',lbl:l.tipoPasto};
+            return (
+              <div key={l.id} className="dy-meal">
+                <div className="dy-meal-hdr">
+                  <div className="dy-mt"><span>{m.ic}</span><span>{m.lbl}</span></div>
+                  <button className="ico-btn" onClick={()=>del(l.id)}>🗑️</button>
+                </div>
+                <div className="dy-chips">
+                  {(l.alimenti||[]).map((a,i)=>(
+                    <span key={i} className="dy-chip">
+                      <span>{a.em}</span>
+                      <span>{a.nome}{a.tags&&a.tags.length>0?` (${a.tags.join(', ')})`:''}</span>
+                    </span>
+                  ))}
+                </div>
+                {l.nota && <div className="dy-note">"{l.nota}"</div>}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================
+   STATS
+============================================================ */
+function Stats({uid, allFoods}) {
+  const [mode, setMode] = useState('count');  // count | last | top
+  const [q,    setQ]    = useState('');
+  const [showDd, setShowDd] = useState(false);
+  const [selFood, setSelFood] = useState(null);
+  const [period, setPeriod]  = useState('week');  // week | month | pick
+  const [py, setPy] = useState(new Date().getFullYear());
+  const [pm, setPm] = useState(new Date().getMonth());
+  const [res, setRes]     = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [top, setTop]     = useState([]);
+  const [topLoad,setTopLoad] = useState(false);
+  const ddRef = useRef();
+
+  useEffect(()=>{
+    function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setShowDd(false);}
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[]);
+
+  const fdResults = useMemo(()=>{
+    if(q.length<2) return [];
+    const lq=q.toLowerCase();
+    return allFoods.filter(f=>f.nome.toLowerCase().includes(lq)).slice(0,10);
+  },[q,allFoods]);
+
+  function getDates() {
+    const now=new Date();
+    if(period==='week')  return {start:weekStart(), end:now};
+    if(period==='month') return {start:monthStart(now.getFullYear(),now.getMonth()), end:now};
+    if(period==='pick')  return {start:monthStart(py,pm), end:monthEnd(py,pm)};
+    return {start:weekStart(),end:now};
+  }
+  function getPeriodLabel() {
+    if(period==='week')  return 'questa settimana';
+    if(period==='month') return MONTHS_L[new Date().getMonth()];
+    if(period==='pick')  return `${MONTHS_L[pm]} ${py}`;
+    return '';
+  }
+
+  async function doCount() {
+    if(!selFood) return;
+    setLoading(true);
+    const {start,end}=getDates();
+    const logs=await getLogs(uid,start,end);
+    const count=logs.reduce((acc,l)=>{
+      const hit=(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase());
+      return acc+(hit?1:0);
+    },0);
+    setRes({type:'count',count,food:selFood,period:getPeriodLabel()});
+    setLoading(false);
+  }
+
+  async function doLast() {
+    if(!selFood) return;
+    setLoading(true);
+    const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
+    const logs=s.docs.map(d=>({id:d.id,...d.data()}));
+    const found=logs.find(l=>(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase()));
+    if(found) {
+      const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
+      setRes({type:'last',food:selFood,date:dt,tipoPasto:found.tipoPasto,nota:found.nota});
+    } else {
+      setRes({type:'last',food:selFood,date:null});
+    }
+    setLoading(false);
+  }
+
+  async function loadTop() {
+    setTopLoad(true);
+    const {start,end}=getDates();
+    const logs=await getLogs(uid,start,end);
+    const cnt={};
+    logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
+      const k=a.nome;
+      if(!cnt[k]) cnt[k]={nome:a.nome,em:a.em||'🍽️',cat:a.cat||'',count:0};
+      cnt[k].count++;
+    }));
+    setTop(Object.values(cnt).sort((a,b)=>b.count-a.count).slice(0,12));
+    setTopLoad(false);
+  }
+
+  useEffect(()=>{ if(mode==='top') loadTop(); else setTop([]); },[mode,period,py,pm]);
+
+  const PeriodSelector = () => (
+    <div className="card" style={{marginBottom:11}}>
+      <label className="lbl">Periodo</label>
+      <div className="pills" style={{marginBottom: period==='pick'?9:0}}>
+        <div className={`pill ${period==='week'?'on':''}`}  onClick={()=>setPeriod('week')}>Questa settimana</div>
+        <div className={`pill ${period==='month'?'on':''}`} onClick={()=>setPeriod('month')}>Questo mese</div>
+        <div className={`pill ${period==='pick'?'on':''}`}  onClick={()=>setPeriod('pick')}>Scegli mese</div>
+      </div>
+      {period==='pick' && (
+        <>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y-1)}>◂</button>
+            <span style={{fontFamily:'Playfair Display',fontWeight:600,flex:1,textAlign:'center'}}>{py}</span>
+            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y+1)}>▸</button>
+          </div>
+          <div className="mo-grid">
+            {MONTHS_S.map((m,i)=>(
+              <div key={i} className={`mo-btn ${pm===i?'on':''}`} onClick={()=>setPm(i)}>{m}</div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="pills">
+        {[{id:'count',lbl:'🔢 Conta volte'},{id:'last',lbl:'🕐 Ultima volta'},{id:'top',lbl:'🏆 Top alimenti'}].map(m=>(
+          <div key={m.id} className={`pill ${mode===m.id?'on':''}`} onClick={()=>{setMode(m.id);setRes(null);}}>
+            {m.lbl}
+          </div>
+        ))}
+      </div>
+
+      {mode !== 'last' && <PeriodSelector/>}
+
+      {(mode==='count'||mode==='last') && (
+        <div className="card">
+          <div style={{position:'relative'}} ref={ddRef}>
+            <input className="inp" placeholder="Cerca alimento..."
+              value={q}
+              onChange={e=>{setQ(e.target.value);setShowDd(true);setSelFood(null);setRes(null);}}
+              onFocus={()=>setShowDd(true)}/>
+            {showDd && fdResults.length>0 && (
+              <div className="fs-dd">
+                {fdResults.map(f=>(
+                  <div key={f.id} className="fs-item" onClick={()=>{setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);}}>
+                    <span>{f.em} {f.nome}</span>
+                    <span className="fs-cat">{f.cat}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {selFood && (
+            <div style={{marginTop:10}}>
+              <button className="btn btn-p btn-full"
+                onClick={mode==='count'?doCount:doLast}
+                disabled={loading}>
+                {loading ? 'Ricerca in corso...'
+                  : mode==='count'
+                    ? `Conta "${selFood.nome}" — ${getPeriodLabel()}`
+                    : `Ultima volta: "${selFood.nome}"`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* RISULTATO CONTA */}
+      {res && res.type==='count' && (
+        <div className="stat-card">
+          <div className="stat-qlbl">{res.food.em} {res.food.nome} — {res.period}</div>
+          <div className="stat-num">{res.count}</div>
+          <div className="stat-unit">{res.count===1?'volta':'volte'}</div>
+        </div>
+      )}
+
+      {/* RISULTATO ULTIMA VOLTA */}
+      {res && res.type==='last' && (
+        <div className="stat-card">
+          <div className="stat-qlbl">Ultima volta: {res.food.em} {res.food.nome}</div>
+          {res.date ? (
+            <>
+              <div className="stat-date">{fmtDate(res.date)}</div>
+              {res.tipoPasto && <div className="stat-meta">{MT_MAP[res.tipoPasto]?.ic} {MT_MAP[res.tipoPasto]?.lbl}{res.nota?` • "${res.nota}"`:''}</div>}
+            </>
+          ) : (
+            <div style={{color:'var(--text3)',fontSize:14,marginTop:8}}>
+              Mai registrato nei dati disponibili
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TOP ALIMENTI */}
+      {mode==='top' && (
+        <div className="card">
+          <div className="card-title">🏆 Alimenti più frequenti — {getPeriodLabel()}</div>
+          {topLoad ? (
+            <div className="spin-wrap"><div className="spinner"/></div>
+          ) : top.length===0 ? (
+            <div className="empty"><div className="empty-ic">📊</div><div className="empty-tx">Nessun dato per questo periodo.</div></div>
+          ) : top.map((f,i)=>(
+            <div key={f.nome} className="tf-row">
+              <div className="tf-rank">{i+1}</div>
+              <span style={{fontSize:17}}>{f.em}</span>
+              <div className="tf-name">{f.nome}</div>
+              <div className="tf-track"><div className="tf-fill" style={{width:`${(f.count/top[0].count)*100}%`}}/></div>
+              <div className="tf-cnt">{f.count}×</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   CATALOG
+============================================================ */
+function Catalog({uid, custom, onAdded}) {
+  const [open, setOpen]   = useState({});
+  const [fq,   setFq]     = useState('');
+  const [show, setShow]   = useState(false);
+  const [nf,   setNf]     = useState({nome:'',cat:'',sub:'',em:'',tags:''});
+  const [saving,setSaving] = useState(false);
+
+  const allFoods = [...FOODS, ...custom];
+
+  const filtered = useMemo(()=>{
+    if(!fq) return allFoods;
+    const lq=fq.toLowerCase();
+    return allFoods.filter(f=>f.nome.toLowerCase().includes(lq)||f.cat.toLowerCase().includes(lq));
+  },[fq,custom]);
+
+  const grouped = useMemo(()=>{
+    const g={};
+    filtered.forEach(f=>{ if(!g[f.cat])g[f.cat]=[]; g[f.cat].push(f); });
+    return g;
+  },[filtered]);
+
+  async function saveNew() {
+    if(!nf.nome||!nf.cat) return;
+    setSaving(true);
+    const food = {
+      id:'custom_'+Date.now(),
+      nome:nf.nome.trim(), cat:nf.cat.trim(),
+      sub:nf.sub.trim()||nf.cat.trim(),
+      em:nf.em||'🍽️',
+      tags:nf.tags.split(',').map(t=>t.trim()).filter(Boolean),
+      custom:true
+    };
+    const docId = await addCustomFood(uid, food);
+    onAdded({...food, firestoreId: docId});
+    setNf({nome:'',cat:'',sub:'',em:'',tags:''});
+    setShow(false);
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <div style={{display:'flex',gap:8,marginBottom:12}}>
+        <input className="inp" style={{flex:1}} placeholder="Filtra catalogo..." value={fq} onChange={e=>setFq(e.target.value)}/>
+        <button className="btn btn-p" onClick={()=>setShow(s=>!s)}>{show?'✕':'+ Nuovo'}</button>
+      </div>
+
+      {show && (
+        <div className="card" style={{marginBottom:12}}>
+          <div className="card-title">➕ Aggiungi alimento</div>
+          <div className="ig">
+            <label className="lbl">Nome *</label>
+            <input className="inp" placeholder="es. Kimchi" value={nf.nome} onChange={e=>setNf(p=>({...p,nome:e.target.value}))}/>
+          </div>
+          <div className="row2">
+            <div className="ig">
+              <label className="lbl">Emoji</label>
+              <input className="inp" placeholder="🥗" value={nf.em} onChange={e=>setNf(p=>({...p,em:e.target.value}))}/>
+            </div>
+            <div className="ig">
+              <label className="lbl">Categoria *</label>
+              <input className="inp" list="cat-list" placeholder="Verdure" value={nf.cat} onChange={e=>setNf(p=>({...p,cat:e.target.value}))}/>
+              <datalist id="cat-list">{CATS.map(c=><option key={c} value={c}/>)}</datalist>
+            </div>
+          </div>
+          <div className="ig">
+            <label className="lbl">Sottocategoria</label>
+            <input className="inp" placeholder="Fermentati" value={nf.sub} onChange={e=>setNf(p=>({...p,sub:e.target.value}))}/>
+          </div>
+          <div className="ig">
+            <label className="lbl">Tag (separati da virgola)</label>
+            <input className="inp" placeholder="piccante, fermentato, vegetale" value={nf.tags} onChange={e=>setNf(p=>({...p,tags:e.target.value}))}/>
+          </div>
+          <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>
+            {saving?'Salvataggio...':'Salva nel catalogo'}
+          </button>
+        </div>
+      )}
+
+      {Object.entries(grouped).map(([cat,foods])=>(
+        <div key={cat} style={{marginBottom:8}}>
+          <div className="cat-hdr" onClick={()=>setOpen(p=>({...p,[cat]:!p[cat]}))}>
+            <span className="cat-hdr-name">{cat}</span>
+            <span className="cat-hdr-cnt">{foods.length}</span>
+            <span style={{color:'var(--text3)',fontSize:11}}>{open[cat]?'▲':'▼'}</span>
+          </div>
+          {open[cat] && (
+            <div className="cat-items">
+              {foods.map(f=>(
+                <div key={f.id} className="cat-food">
+                  <span className="cat-food-em">{f.em}</span>
+                  <div style={{flex:1}}>
+                    <div className="cat-food-name">
+                      {f.nome}
+                      {f.custom&&<span className="badge badge-g" style={{marginLeft:5}}>custom</span>}
+                    </div>
+                    <div className="cat-food-sub">
+                      {f.sub}{f.tags&&f.tags.length>0?` · ${f.tags.slice(0,4).join(', ')}${f.tags.length>4?'...':''}` :''}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============================================================
+   TOAST
+============================================================ */
+function Toast({msg}) { return msg ? <div className="toast">{msg}</div> : null; }
+
+/* ============================================================
+   APP ROOT
+============================================================ */
+function App() {
+  const [user, setUser]   = useState(null);
+  const [authOk,setAuthOk] = useState(false);
+  const [tab,   setTab]   = useState('add');
+  const [toast, setToast] = useState('');
+  const [custom,setCustom] = useState([]);
+
+  useEffect(()=>{
+    return auth.onAuthStateChanged(u=>{
+      setUser(u); setAuthOk(true);
+      if(u) getCustomFoods(u.uid).then(setCustom);
+    });
+  },[]);
+
+  function showToast(msg){ setToast(msg); setTimeout(()=>setToast(''),2800); }
+
+  const allFoods = useMemo(()=>[...FOODS,...custom],[custom]);
+
+  if(!authOk) return <div className="loading-full"><div className="spinner"/></div>;
+
+  if(!user) return (
+    <div className="login">
+      <div className="login-logo">🍽️</div>
+      <div className="login-title">FoodJournal</div>
+      <div className="login-sub">Il tuo diario alimentare personale.<br/>Non conta le calorie — racconta <em>cosa mangi</em>.</div>
+      <button className="login-btn" onClick={()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}>
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Accedi con Google
+      </button>
+    </div>
+  );
+
+  const TABS = [
+    {id:'add',   ic:'✏️', lb:'Aggiungi'},
+    {id:'diary', ic:'📔', lb:'Diario'},
+    {id:'stats', ic:'📊', lb:'Statistiche'},
+    {id:'cat',   ic:'🗂️', lb:'Catalogo'},
+  ];
+
+  return (
+    <>
+      <div className="hdr">
+        <div>
+          <div className="hdr-title">FoodJournal</div>
+          <div className="hdr-sub">diario alimentare personale</div>
+        </div>
+        <div className="avatar" onClick={()=>confirm('Esci dall\'account?')&&auth.signOut()} title="Esci">
+          {user.photoURL ? <img src={user.photoURL} alt=""/> : user.displayName?.charAt(0)||'U'}
+        </div>
+      </div>
+
+      <div className="content">
+        {tab==='add'   && <AddMeal uid={user.uid} allFoods={allFoods} onSaved={showToast}/>}
+        {tab==='diary' && <Diary uid={user.uid}/>}
+        {tab==='stats' && <Stats uid={user.uid} allFoods={allFoods}/>}
+        {tab==='cat'   && <Catalog uid={user.uid} custom={custom} onAdded={f=>setCustom(p=>[...p,f])}/>}
+        <div style={{height:14}}/>
+      </div>
+
+      <div className="tabs">
+        {TABS.map(t=>(
+          <button key={t.id} className={`tab ${tab===t.id?'on':''}`} onClick={()=>setTab(t.id)}>
+            <span className="tab-ic">{t.ic}</span>
+            <span className="tab-lb">{t.lb}</span>
+          </button>
+        ))}
+      </div>
+
+      <Toast msg={toast}/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<!-- SERVICE WORKER REGISTRATION -->
+<script>
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+</script>
+</body>
+</html>
