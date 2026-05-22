@@ -1466,31 +1466,6 @@ function Stats({uid, allFoods}) {
     else { setTop([]); setDiet(null); }
   },[mode,period,py,pm]);
 
-  const PeriodSelector = () => (
-    <div className="card" style={{marginBottom:11}}>
-      <label className="lbl">Periodo</label>
-      <div className="pills" style={{marginBottom: period==='pick'?9:0}}>
-        <div className={`pill ${period==='week'?'on':''}`}  onClick={()=>setPeriod('week')}>Questa settimana</div>
-        <div className={`pill ${period==='month'?'on':''}`} onClick={()=>setPeriod('month')}>Questo mese</div>
-        <div className={`pill ${period==='pick'?'on':''}`}  onClick={()=>setPeriod('pick')}>Scegli mese</div>
-      </div>
-      {period==='pick' && (
-        <>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y-1)}>◂</button>
-            <span style={{fontFamily:'Playfair Display',fontWeight:600,flex:1,textAlign:'center'}}>{py}</span>
-            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y+1)}>▸</button>
-          </div>
-          <div className="mo-grid">
-            {MONTHS_S.map((m,i)=>(
-              <div key={i} className={`mo-btn ${pm===i?'on':''}`} onClick={()=>setPm(i)}>{m}</div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-
 
 /* ============================================================
    CATALOG
