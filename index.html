@@ -774,9 +774,8 @@ function Stats(props){
   var ddS=useState(false), showDd=ddS[0], setShowDd=ddS[1];
   var sfS=useState(null), selFood=sfS[0], setSelFood=sfS[1];
   var stS=useState(null), selTipo=stS[0], setSelTipo=stS[1];
-  var perS=useState('week'), period=perS[0], setPeriod=perS[1];
-  var pyS=useState(new Date().getFullYear()), py=pyS[0], setPy=pyS[1];
-  var pmS=useState(new Date().getMonth()), pm=pmS[0], setPm=pmS[1];
+  var pmS=useState('week'), periodMode=pmS[0], setPeriodMode=pmS[1];
+  var poS=useState(0), periodOffset=poS[0], setPeriodOffset=poS[1];
   var resS=useState(null), res=resS[0], setRes=resS[1];
   var loadS=useState(false), loading=loadS[0], setLoading=loadS[1];
   var topS=useState([]), top=topS[0], setTop=topS[1];
@@ -784,6 +783,7 @@ function Stats(props){
   var dietS=useState(null), diet=dietS[0], setDiet=dietS[1];
   var dlS=useState(false), dietLoad=dlS[0], setDietLoad=dlS[1];
   var ddRef=useRef();
+  var swipeRef=useRef({});
 
   useEffect(function(){
     function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setShowDd(false);}
@@ -799,14 +799,42 @@ function Stats(props){
 
   function getDates(){
     var now=new Date();
-    if(period==='week') return {start:weekStart(),end:now};
-    if(period==='month') return {start:monthStart(now.getFullYear(),now.getMonth()),end:now};
-    return {start:monthStart(py,pm),end:monthEnd(py,pm)};
+    if(periodMode==='day'){
+      var d=new Date(now);
+      d.setDate(d.getDate()+periodOffset);
+      d.setHours(0,0,0,0);
+      var e=new Date(d); e.setHours(23,59,59,999);
+      return {start:d,end:e};
+    }
+    if(periodMode==='week'){
+      var ws=weekStart();
+      ws.setDate(ws.getDate()+periodOffset*7);
+      var we=new Date(ws); we.setDate(we.getDate()+6); we.setHours(23,59,59,999);
+      return {start:ws,end:we};
+    }
+    // month
+    var base=new Date(now.getFullYear(),now.getMonth()+periodOffset,1);
+    return {start:monthStart(base.getFullYear(),base.getMonth()),end:monthEnd(base.getFullYear(),base.getMonth())};
   }
+
   function getPeriodLabel(){
-    if(period==='week') return 'questa settimana';
-    if(period==='month') return MESI_L[new Date().getMonth()];
-    return MESI_L[pm]+' '+py;
+    var now=new Date();
+    if(periodMode==='day'){
+      if(periodOffset===0) return 'Oggi';
+      if(periodOffset===-1) return 'Ieri';
+      var d=new Date(now); d.setDate(d.getDate()+periodOffset);
+      return d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+    }
+    if(periodMode==='week'){
+      if(periodOffset===0) return 'Questa settimana';
+      if(periodOffset===-1) return 'Settimana scorsa';
+      var ws=weekStart(); ws.setDate(ws.getDate()+periodOffset*7);
+      var we=new Date(ws); we.setDate(we.getDate()+6);
+      return ws.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' - '+we.toLocaleDateString('it-IT',{day:'numeric',month:'short'});
+    }
+    var base=new Date(now.getFullYear(),now.getMonth()+periodOffset,1);
+    if(periodOffset===0) return MESI_L[base.getMonth()];
+    return MESI_L[base.getMonth()]+' '+base.getFullYear();
   }
 
   function doCount(){
@@ -925,9 +953,16 @@ function Stats(props){
     if(mode==='top'){loadTop();setDiet(null);}
     else if(mode==='diet'){loadDiet();setTop([]);}
     else{setTop([]);setDiet(null);}
-  },[mode,period,py,pm]);
+  },[mode,periodMode,periodOffset]);
 
   var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
+
+  // Swipe handlers
+  function onTouchStart(e){ swipeRef.current.x=e.touches[0].clientX; }
+  function onTouchEnd(e){
+    var dx=e.changedTouches[0].clientX-swipeRef.current.x;
+    if(Math.abs(dx)>50) setPeriodOffset(function(o){return dx<0?o-1:o+1;});
+  }
 
   return (
     <div>
@@ -937,27 +972,45 @@ function Stats(props){
         })}
       </div>
 
-      <div className="card" style={{marginBottom:11}}>
-        <div className="lbl">Periodo</div>
-        <div className="pills" style={{marginBottom:period==='pick'?9:0}}>
-          <div className={'pill'+(period==='week'?' on':'')} onClick={function(){setPeriod('week');}}>Questa settimana</div>
-          <div className={'pill'+(period==='month'?' on':'')} onClick={function(){setPeriod('month');}}>Questo mese</div>
-          <div className={'pill'+(period==='pick'?' on':'')} onClick={function(){setPeriod('pick');}}>Scegli mese</div>
+      {/* PERIOD NAVIGATOR */}
+      <div className="card" style={{marginBottom:11}} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        {/* Modalità */}
+        <div className="smtog" style={{marginBottom:10}}>
+          {['day','week','month'].map(function(pm){
+            var lbl=pm==='day'?'Giorno':pm==='week'?'Settimana':'Mese';
+            return <button key={pm} className={'smt-btn'+(periodMode===pm?' on':'')}
+              onClick={function(){setPeriodMode(pm);setPeriodOffset(0);}}>{lbl}</button>;
+          })}
         </div>
-        {period==='pick' && (
-          <div>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-              <button className="btn btn-s btn-sm" onClick={function(){setPy(function(y){return y-1;});}}>◂</button>
-              <span style={{fontFamily:'Playfair Display',fontWeight:600,flex:1,textAlign:'center'}}>{py}</span>
-              <button className="btn btn-s btn-sm" onClick={function(){setPy(function(y){return y+1;});}}>▸</button>
-            </div>
-            <div className="mo-grid">
-              {MESI_S.map(function(m,i){
-                return <div key={i} className={'mo-btn'+(pm===i?' on':'')} onClick={function(){setPm(i);}}>{m}</div>;
-              })}
-            </div>
+        {/* Navigazione */}
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <button className="btn btn-s btn-sm" style={{flexShrink:0}} onClick={function(){setPeriodOffset(function(o){return o-1;});}}>◂</button>
+          <div style={{flex:1,textAlign:'center'}}>
+            <div style={{fontFamily:'Playfair Display',fontWeight:600,fontSize:15,color:'var(--tx)'}}>{getPeriodLabel()}</div>
+            {periodMode==='day' && periodOffset===0 && (
+              <div style={{fontSize:10,color:'var(--tx3)',marginTop:2}}>
+                {new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}
+              </div>
+            )}
+            {periodMode==='week' && periodOffset===0 && (
+              <div style={{fontSize:10,color:'var(--tx3)',marginTop:2}}>
+                {(function(){var ws=weekStart(),we=new Date(ws);we.setDate(we.getDate()+6);
+                  return ws.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' - '+we.toLocaleDateString('it-IT',{day:'numeric',month:'long'});})()}
+              </div>
+            )}
           </div>
+          <button className="btn btn-s btn-sm" style={{flexShrink:0,opacity:periodOffset>=0?0.3:1}}
+            disabled={periodOffset>=0}
+            onClick={function(){setPeriodOffset(function(o){return o+1;});}}>▸</button>
+        </div>
+        {/* Tasto Oggi/Corrente */}
+        {periodOffset!==0 && (
+          <button className="btn btn-s btn-full" style={{marginTop:8,fontSize:12}}
+            onClick={function(){setPeriodOffset(0);}}>
+            {periodMode==='day'?'Torna a Oggi':periodMode==='week'?'Torna a questa settimana':'Torna a questo mese'}
+          </button>
         )}
+        <div style={{fontSize:10,color:'var(--tx3)',textAlign:'center',marginTop:6}}>← swipe per navigare →</div>
       </div>
 
       {(mode==='count'||mode==='last') && (
