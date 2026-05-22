@@ -218,6 +218,42 @@
     .loading-full{display:flex;align-items:center;justify-content:center;height:100dvh;}
     .divider{height:1px;background:var(--border);margin:11px 0;}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+    /* FOOD DETAIL PANEL (tag + dietary inline) */
+    .fdp{background:var(--bg);border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px;margin-top:5px;margin-bottom:2px;}
+    .fdp-section{margin-bottom:9px;}
+    .fdp-section:last-child{margin-bottom:0;}
+    .fdp-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+    .fdp-tags{display:flex;flex-wrap:wrap;gap:5px;}
+    .fdp-tag{padding:4px 10px;border-radius:20px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
+    .fdp-tag.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600;}
+    .fdp-diet{display:flex;gap:7px;}
+    .fdp-dtog{flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;}
+    .fdp-dtog.on{background:var(--green-dim);border-color:var(--green);}
+    .fdp-dtog-ic{font-size:16px;flex-shrink:0;}
+    .fdp-dtog-info{flex:1;min-width:0;}
+    .fdp-dtog-name{font-size:11px;font-weight:600;color:var(--text2);}
+    .fdp-dtog.on .fdp-dtog-name{color:var(--green);}
+    .fdp-dtog-val{font-size:10px;color:var(--text3);margin-top:1px;}
+    .fdp-dtog.on .fdp-dtog-val{color:var(--green);}
+
+    /* FODMAP BADGE */
+    .fod-low{background:rgba(122,184,122,.15);color:#7ab87a;border:1px solid rgba(122,184,122,.3);}
+    .fod-med{background:rgba(232,168,76,.12);color:#e8a84c;border:1px solid rgba(232,168,76,.3);}
+    .fod-high{background:rgba(232,122,122,.12);color:#e87a7a;border:1px solid rgba(232,122,122,.3);}
+    .fod-badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+
+    /* DIET STATS */
+    .ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+    .ds-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;}
+    .ds-ic{font-size:22px;margin-bottom:5px;}
+    .ds-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;line-height:1;}
+    .ds-lbl{font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3;}
+    .fodmap-bar{display:flex;border-radius:6px;overflow:hidden;height:10px;margin:8px 0 4px;}
+    .fodmap-seg{transition:width .3s;}
+    .fodmap-legend{display:flex;gap:10px;flex-wrap:wrap;}
+    .fodmap-leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);}
+    .fodmap-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
   </style>
 </head>
 <body>
@@ -245,102 +281,102 @@ const { useState, useEffect, useRef, useMemo } = React;
 ============================================================ */
 const FOODS = [
   // CEREALI E DERIVATI
-  {id:'pasta',nome:'Pasta',cat:'Cereali e Derivati',sub:'Pasta',em:'🍝',tags:['corta','lunga','ripiena','integrale','fresca','al forno']},
-  {id:'riso',nome:'Riso',cat:'Cereali e Derivati',sub:'Riso',em:'🍚',tags:['bianco','integrale','basmati','risotto']},
-  {id:'pane',nome:'Pane',cat:'Cereali e Derivati',sub:'Pane',em:'🍞',tags:['bianco','integrale','di segale','tostato','focaccia','grissini']},
-  {id:'pizza',nome:'Pizza',cat:'Cereali e Derivati',sub:'Pizza',em:'🍕',tags:['margherita','marinara','con verdure','con carne','bianca']},
-  {id:'gnocchi',nome:'Gnocchi',cat:'Cereali e Derivati',sub:'Gnocchi',em:'🥟',tags:['di patate','di ricotta']},
-  {id:'polenta',nome:'Polenta',cat:'Cereali e Derivati',sub:'Polenta',em:'🫓',tags:['morbida','grigliata','fritta']},
-  {id:'couscous',nome:'Couscous',cat:'Cereali e Derivati',sub:'Couscous',em:'🫙',tags:[]},
-  {id:'cereali_col',nome:'Cereali da colazione',cat:'Cereali e Derivati',sub:'Cereali colazione',em:'🥣',tags:['muesli','fiocchi d\'avena','granola','cornflakes']},
-  {id:'crackers',nome:'Crackers / Grissini',cat:'Cereali e Derivati',sub:'Crackers',em:'🍘',tags:['integrali','classici','senza glutine']},
+  {id:'pasta',nome:'Pasta',cat:'Cereali e Derivati',sub:'Pasta',em:'🍝',tags:['corta','lunga','ripiena','integrale','fresca','al forno'],gluten:true,lactose:false,fodmap:'high'},
+  {id:'riso',nome:'Riso',cat:'Cereali e Derivati',sub:'Riso',em:'🍚',tags:['bianco','integrale','basmati','risotto'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'pane',nome:'Pane',cat:'Cereali e Derivati',sub:'Pane',em:'🍞',tags:['bianco','integrale','di segale','tostato','focaccia','grissini'],gluten:true,lactose:false,fodmap:'high'},
+  {id:'pizza',nome:'Pizza',cat:'Cereali e Derivati',sub:'Pizza',em:'🍕',tags:['margherita','marinara','con verdure','con carne','bianca'],gluten:true,lactose:true,fodmap:'high'},
+  {id:'gnocchi',nome:'Gnocchi',cat:'Cereali e Derivati',sub:'Gnocchi',em:'🥟',tags:['di patate','di ricotta'],gluten:true,lactose:false,fodmap:'high'},
+  {id:'polenta',nome:'Polenta',cat:'Cereali e Derivati',sub:'Polenta',em:'🫓',tags:['morbida','grigliata','fritta'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'couscous',nome:'Couscous',cat:'Cereali e Derivati',sub:'Couscous',em:'🫙',tags:[],gluten:true,lactose:false,fodmap:'high'},
+  {id:'cereali_col',nome:'Cereali da colazione',cat:'Cereali e Derivati',sub:'Cereali colazione',em:'🥣',tags:['muesli','fiocchi d\'avena','granola','cornflakes'],gluten:true,lactose:false,fodmap:'med'},
+  {id:'crackers',nome:'Crackers / Grissini',cat:'Cereali e Derivati',sub:'Crackers',em:'🍘',tags:['integrali','classici','senza glutine'],gluten:true,lactose:false,fodmap:'high'},
   // CARNI ROSSE
-  {id:'manzo',nome:'Manzo',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['bistecca','hamburger','arrosto','bollito','macinato','tagliata','carpaccio']},
-  {id:'maiale',nome:'Maiale',cat:'Carni Rosse',sub:'Suino',em:'🥩',tags:['costine','lonza','pancetta','salsiccia','braciola','porchetta']},
-  {id:'agnello',nome:'Agnello',cat:'Carni Rosse',sub:'Ovino',em:'🍖',tags:['costolette','spezzatino','scottadito','arrosticini']},
-  {id:'vitello',nome:'Vitello',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['scaloppine','ossobuco','cotoletta','spezzatino']},
-  {id:'selvaggina',nome:'Selvaggina',cat:'Carni Rosse',sub:'Selvaggina',em:'🦌',tags:['cinghiale','cervo','capriolo','lepre','fagiano']},
+  {id:'manzo',nome:'Manzo',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['bistecca','hamburger','arrosto','bollito','macinato','tagliata','carpaccio'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'maiale',nome:'Maiale',cat:'Carni Rosse',sub:'Suino',em:'🥩',tags:['costine','lonza','pancetta','salsiccia','braciola','porchetta'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'agnello',nome:'Agnello',cat:'Carni Rosse',sub:'Ovino',em:'🍖',tags:['costolette','spezzatino','scottadito','arrosticini'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'vitello',nome:'Vitello',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['scaloppine','ossobuco','cotoletta','spezzatino'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'selvaggina',nome:'Selvaggina',cat:'Carni Rosse',sub:'Selvaggina',em:'🦌',tags:['cinghiale','cervo','capriolo','lepre','fagiano'],gluten:false,lactose:false,fodmap:'low'},
   // CARNI BIANCHE
-  {id:'pollo',nome:'Pollo',cat:'Carni Bianche',sub:'Pollo',em:'🍗',tags:['petto','cosce','arrosto','fritto','alla griglia','in umido']},
-  {id:'tacchino',nome:'Tacchino',cat:'Carni Bianche',sub:'Tacchino',em:'🦃',tags:['petto','fettine','macinato','arrosto']},
-  {id:'coniglio',nome:'Coniglio',cat:'Carni Bianche',sub:'Coniglio',em:'🐇',tags:['al forno','in umido','alla cacciatora','alla ligure']},
-  {id:'anatra',nome:'Anatra / Oca',cat:'Carni Bianche',sub:'Pollame',em:'🦆',tags:['anatra','oca','al forno','all\'arancia']},
+  {id:'pollo',nome:'Pollo',cat:'Carni Bianche',sub:'Pollo',em:'🍗',tags:['petto','cosce','arrosto','fritto','alla griglia','in umido'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'tacchino',nome:'Tacchino',cat:'Carni Bianche',sub:'Tacchino',em:'🦃',tags:['petto','fettine','macinato','arrosto'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'coniglio',nome:'Coniglio',cat:'Carni Bianche',sub:'Coniglio',em:'🐇',tags:['al forno','in umido','alla cacciatora','alla ligure'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'anatra',nome:'Anatra / Oca',cat:'Carni Bianche',sub:'Pollame',em:'🦆',tags:['anatra','oca','al forno','all\'arancia'],gluten:false,lactose:false,fodmap:'low'},
   // PESCE
-  {id:'salmone',nome:'Salmone',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','affumicato','alla griglia','al vapore','in crosta']},
-  {id:'tonno',nome:'Tonno',cat:'Pesce',sub:'Pesce',em:'🐠',tags:['fresco','in scatola','alla griglia']},
-  {id:'merluzzo',nome:'Merluzzo / Baccalà',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','baccalà','fritto','al vapore']},
-  {id:'branzino',nome:'Branzino / Spigola',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','al sale','alla griglia']},
-  {id:'orata',nome:'Orata',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','alla griglia']},
-  {id:'gamberetti',nome:'Gamberetti / Gamberi',cat:'Pesce',sub:'Frutti di mare',em:'🦐',tags:['gamberi','gamberoni','saltati','in insalata']},
-  {id:'cozze',nome:'Cozze / Vongole',cat:'Pesce',sub:'Frutti di mare',em:'🦪',tags:['cozze','vongole','alla marinara','gratinate']},
-  {id:'calamari',nome:'Calamari / Seppie',cat:'Pesce',sub:'Frutti di mare',em:'🦑',tags:['fritti','in umido','alla griglia']},
-  {id:'sardine',nome:'Sardine / Acciughe',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['in scatola','fresche','marinate','sott\'olio']},
+  {id:'salmone',nome:'Salmone',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','affumicato','alla griglia','al vapore','in crosta'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'tonno',nome:'Tonno',cat:'Pesce',sub:'Pesce',em:'🐠',tags:['fresco','in scatola','alla griglia'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'merluzzo',nome:'Merluzzo / Baccalà',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','baccalà','fritto','al vapore'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'branzino',nome:'Branzino / Spigola',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','al sale','alla griglia'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'orata',nome:'Orata',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','alla griglia'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'gamberetti',nome:'Gamberetti / Gamberi',cat:'Pesce',sub:'Frutti di mare',em:'🦐',tags:['gamberi','gamberoni','saltati','in insalata'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'cozze',nome:'Cozze / Vongole',cat:'Pesce',sub:'Frutti di mare',em:'🦪',tags:['cozze','vongole','alla marinara','gratinate'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'calamari',nome:'Calamari / Seppie',cat:'Pesce',sub:'Frutti di mare',em:'🦑',tags:['fritti','in umido','alla griglia'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'sardine',nome:'Sardine / Acciughe',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['in scatola','fresche','marinate','sott\'olio'],gluten:false,lactose:false,fodmap:'low'},
   // SALUMI
-  {id:'prosciutto_cotto',nome:'Prosciutto cotto',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['alta qualità','di Praga']},
-  {id:'prosciutto_crudo',nome:'Prosciutto crudo',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['San Daniele','di Parma','di Norcia']},
-  {id:'salame',nome:'Salame',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['Milano','piccante','di Felino','ungherese']},
-  {id:'mortadella',nome:'Mortadella',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['classica','con pistacchi']},
-  {id:'bresaola',nome:'Bresaola',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[]},
-  {id:'speck',nome:'Speck',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[]},
+  {id:'prosciutto_cotto',nome:'Prosciutto cotto',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['alta qualità','di Praga'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'prosciutto_crudo',nome:'Prosciutto crudo',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['San Daniele','di Parma','di Norcia'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'salame',nome:'Salame',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['Milano','piccante','di Felino','ungherese'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'mortadella',nome:'Mortadella',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['classica','con pistacchi'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'bresaola',nome:'Bresaola',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[],gluten:false,lactose:false,fodmap:'low'},
+  {id:'speck',nome:'Speck',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[],gluten:false,lactose:false,fodmap:'low'},
   // UOVA
-  {id:'uova',nome:'Uova',cat:'Uova',sub:'Uova',em:'🥚',tags:['fritte','strapazzate','bollite','in camicia','omelette','al tegame','sode']},
+  {id:'uova',nome:'Uova',cat:'Uova',sub:'Uova',em:'🥚',tags:['fritte','strapazzate','bollite','in camicia','omelette','al tegame','sode'],gluten:false,lactose:false,fodmap:'low'},
   // LATTICINI
-  {id:'latte',nome:'Latte',cat:'Latticini',sub:'Latte',em:'🥛',tags:['intero','parzialmente scremato','vegetale','di soia','di avena']},
-  {id:'yogurt',nome:'Yogurt',cat:'Latticini',sub:'Yogurt',em:'🫙',tags:['bianco','alla frutta','greco','kefir']},
-  {id:'mozzarella',nome:'Mozzarella',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['fiordilatte','di bufala','affumicata']},
-  {id:'parmigiano',nome:'Parmigiano / Grana',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['parmigiano','grana padano','grattugiato']},
-  {id:'ricotta',nome:'Ricotta',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['di mucca','di pecora']},
-  {id:'formaggio',nome:'Formaggio stagionato',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['pecorino','gorgonzola','brie','emmental','asiago','scamorza']},
+  {id:'latte',nome:'Latte',cat:'Latticini',sub:'Latte',em:'🥛',tags:['intero','parzialmente scremato','vegetale','di soia','di avena'],gluten:false,lactose:true,fodmap:'high'},
+  {id:'yogurt',nome:'Yogurt',cat:'Latticini',sub:'Yogurt',em:'🫙',tags:['bianco','alla frutta','greco','kefir'],gluten:false,lactose:true,fodmap:'high'},
+  {id:'mozzarella',nome:'Mozzarella',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['fiordilatte','di bufala','affumicata'],gluten:false,lactose:true,fodmap:'med'},
+  {id:'parmigiano',nome:'Parmigiano / Grana',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['parmigiano','grana padano','grattugiato'],gluten:false,lactose:true,fodmap:'low'},
+  {id:'ricotta',nome:'Ricotta',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['di mucca','di pecora'],gluten:false,lactose:true,fodmap:'high'},
+  {id:'formaggio',nome:'Formaggio stagionato',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['pecorino','gorgonzola','brie','emmental','asiago','scamorza'],gluten:false,lactose:true,fodmap:'low'},
   // LEGUMI
-  {id:'fagioli',nome:'Fagioli',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['borlotti','cannellini','neri','in scatola']},
-  {id:'ceci',nome:'Ceci',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['in scatola','hummus','in padella']},
-  {id:'lenticchie',nome:'Lenticchie',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['rosse','verdi','beluga','in umido']},
-  {id:'piselli',nome:'Piselli',cat:'Legumi',sub:'Legumi',em:'🫛',tags:['freschi','surgelati','in scatola']},
+  {id:'fagioli',nome:'Fagioli',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['borlotti','cannellini','neri','in scatola'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'ceci',nome:'Ceci',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['in scatola','hummus','in padella'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'lenticchie',nome:'Lenticchie',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['rosse','verdi','beluga','in umido'],gluten:false,lactose:false,fodmap:'med'},
+  {id:'piselli',nome:'Piselli',cat:'Legumi',sub:'Legumi',em:'🫛',tags:['freschi','surgelati','in scatola'],gluten:false,lactose:false,fodmap:'med'},
   // VERDURE
-  {id:'insalata',nome:'Insalata',cat:'Verdure',sub:'Insalata',em:'🥗',tags:['verde','mista','rucola','spinacino','iceberg','radicchio']},
-  {id:'pomodori',nome:'Pomodori',cat:'Verdure',sub:'Pomodori',em:'🍅',tags:['ciliegini','pachino','san marzano','pelati']},
-  {id:'zucchine',nome:'Zucchine',cat:'Verdure',sub:'Zucchine',em:'🥒',tags:['grigliate','trifolate','in umido','crude']},
-  {id:'carote',nome:'Carote',cat:'Verdure',sub:'Carote',em:'🥕',tags:['crude','cotte','grattugiate']},
-  {id:'patate',nome:'Patate',cat:'Verdure',sub:'Patate',em:'🥔',tags:['al forno','bollite','fritte','purè','novelle']},
-  {id:'melanzane',nome:'Melanzane',cat:'Verdure',sub:'Melanzane',em:'🍆',tags:['grigliate','parmigiana','al forno','in agrodolce']},
-  {id:'peperoni',nome:'Peperoni',cat:'Verdure',sub:'Peperoni',em:'🫑',tags:['rossi','gialli','verdi','arrostiti','in padella']},
-  {id:'spinaci',nome:'Spinaci',cat:'Verdure',sub:'Spinaci',em:'🥬',tags:['freschi','saltati','al vapore','surgelati']},
-  {id:'broccoli',nome:'Broccoli',cat:'Verdure',sub:'Broccoli',em:'🥦',tags:['al vapore','ripassati','al forno']},
-  {id:'cipolla_aglio',nome:'Cipolla / Aglio',cat:'Verdure',sub:'Aromatici',em:'🧅',tags:['cipolla','aglio','porro','scalogno']},
-  {id:'funghi',nome:'Funghi',cat:'Verdure',sub:'Funghi',em:'🍄',tags:['champignon','porcini','pleurotus','trifolati','secchi']},
-  {id:'cavolo',nome:'Cavolfiore / Cavolo',cat:'Verdure',sub:'Cavoli',em:'🥦',tags:['cavolfiore','broccolo romanesco','cavolo cappuccio','verza','kale']},
+  {id:'insalata',nome:'Insalata',cat:'Verdure',sub:'Insalata',em:'🥗',tags:['verde','mista','rucola','spinacino','iceberg','radicchio'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'pomodori',nome:'Pomodori',cat:'Verdure',sub:'Pomodori',em:'🍅',tags:['ciliegini','pachino','san marzano','pelati'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'zucchine',nome:'Zucchine',cat:'Verdure',sub:'Zucchine',em:'🥒',tags:['grigliate','trifolate','in umido','crude'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'carote',nome:'Carote',cat:'Verdure',sub:'Carote',em:'🥕',tags:['crude','cotte','grattugiate'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'patate',nome:'Patate',cat:'Verdure',sub:'Patate',em:'🥔',tags:['al forno','bollite','fritte','purè','novelle'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'melanzane',nome:'Melanzane',cat:'Verdure',sub:'Melanzane',em:'🍆',tags:['grigliate','parmigiana','al forno','in agrodolce'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'peperoni',nome:'Peperoni',cat:'Verdure',sub:'Peperoni',em:'🫑',tags:['rossi','gialli','verdi','arrostiti','in padella'],gluten:false,lactose:false,fodmap:'med'},
+  {id:'spinaci',nome:'Spinaci',cat:'Verdure',sub:'Spinaci',em:'🥬',tags:['freschi','saltati','al vapore','surgelati'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'broccoli',nome:'Broccoli',cat:'Verdure',sub:'Broccoli',em:'🥦',tags:['al vapore','ripassati','al forno'],gluten:false,lactose:false,fodmap:'med'},
+  {id:'cipolla_aglio',nome:'Cipolla / Aglio',cat:'Verdure',sub:'Aromatici',em:'🧅',tags:['cipolla','aglio','porro','scalogno'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'funghi',nome:'Funghi',cat:'Verdure',sub:'Funghi',em:'🍄',tags:['champignon','porcini','pleurotus','trifolati','secchi'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'cavolo',nome:'Cavolfiore / Cavolo',cat:'Verdure',sub:'Cavoli',em:'🥦',tags:['cavolfiore','broccolo romanesco','cavolo cappuccio','verza','kale'],gluten:false,lactose:false,fodmap:'high'},
   // FRUTTA
-  {id:'mela',nome:'Mela / Pera',cat:'Frutta',sub:'Frutta',em:'🍎',tags:['mela','pera','cotogna']},
-  {id:'banana',nome:'Banana',cat:'Frutta',sub:'Frutta',em:'🍌',tags:[]},
-  {id:'agrumi',nome:'Agrumi',cat:'Frutta',sub:'Frutta',em:'🍊',tags:['arancia','mandarino','limone','pompelmo','clementina']},
-  {id:'pesca',nome:'Pesca / Albicocca',cat:'Frutta',sub:'Frutta',em:'🍑',tags:['pesca','albicocca','nettarina','susina']},
-  {id:'fragole',nome:'Fragole',cat:'Frutta',sub:'Frutta',em:'🍓',tags:['fresche','con panna']},
-  {id:'uva',nome:'Uva',cat:'Frutta',sub:'Frutta',em:'🍇',tags:['bianca','rossa','nera']},
-  {id:'kiwi',nome:'Kiwi',cat:'Frutta',sub:'Frutta',em:'🥝',tags:[]},
-  {id:'melone',nome:'Melone / Anguria',cat:'Frutta',sub:'Frutta',em:'🍉',tags:['melone','anguria','melone bianco']},
-  {id:'frutta_secca',nome:'Frutta secca',cat:'Frutta',sub:'Frutta secca',em:'🥜',tags:['noci','mandorle','nocciole','pistacchi','anacardi','pinoli','datteri']},
+  {id:'mela',nome:'Mela / Pera',cat:'Frutta',sub:'Frutta',em:'🍎',tags:['mela','pera','cotogna'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'banana',nome:'Banana',cat:'Frutta',sub:'Frutta',em:'🍌',tags:[],gluten:false,lactose:false,fodmap:'med'},
+  {id:'agrumi',nome:'Agrumi',cat:'Frutta',sub:'Frutta',em:'🍊',tags:['arancia','mandarino','limone','pompelmo','clementina'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'pesca',nome:'Pesca / Albicocca',cat:'Frutta',sub:'Frutta',em:'🍑',tags:['pesca','albicocca','nettarina','susina'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'fragole',nome:'Fragole',cat:'Frutta',sub:'Frutta',em:'🍓',tags:['fresche','con panna'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'uva',nome:'Uva',cat:'Frutta',sub:'Frutta',em:'🍇',tags:['bianca','rossa','nera'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'kiwi',nome:'Kiwi',cat:'Frutta',sub:'Frutta',em:'🥝',tags:[],gluten:false,lactose:false,fodmap:'low'},
+  {id:'melone',nome:'Melone / Anguria',cat:'Frutta',sub:'Frutta',em:'🍉',tags:['melone','anguria','melone bianco'],gluten:false,lactose:false,fodmap:'high'},
+  {id:'frutta_secca',nome:'Frutta secca',cat:'Frutta',sub:'Frutta secca',em:'🥜',tags:['noci','mandorle','nocciole','pistacchi','anacardi','pinoli','datteri'],gluten:false,lactose:false,fodmap:'med'},
   // DOLCI E SNACK
-  {id:'biscotti',nome:'Biscotti',cat:'Dolci e Snack',sub:'Biscotti',em:'🍪',tags:['secchi','al cioccolato','integrali','al burro','tipo oreo']},
-  {id:'torta',nome:'Torta / Crostata',cat:'Dolci e Snack',sub:'Torte',em:'🎂',tags:['crostata','di frutta','al cioccolato','cheesecake','tiramisù','creme caramel']},
-  {id:'cioccolato',nome:'Cioccolato',cat:'Dolci e Snack',sub:'Cioccolato',em:'🍫',tags:['fondente','al latte','bianco','con frutta secca']},
-  {id:'gelato',nome:'Gelato',cat:'Dolci e Snack',sub:'Gelato',em:'🍦',tags:['alla frutta','al cioccolato','alla crema','sorbetto']},
-  {id:'croissant',nome:'Croissant / Brioche',cat:'Dolci e Snack',sub:'Pasticceria',em:'🥐',tags:['vuoto','con marmellata','con crema','cornetto']},
-  {id:'snack',nome:'Snack / Patatine',cat:'Dolci e Snack',sub:'Snack',em:'🍿',tags:['patatine','chips','popcorn','merendina','barretta']},
+  {id:'biscotti',nome:'Biscotti',cat:'Dolci e Snack',sub:'Biscotti',em:'🍪',tags:['secchi','al cioccolato','integrali','al burro','tipo oreo'],gluten:true,lactose:true,fodmap:'high'},
+  {id:'torta',nome:'Torta / Crostata',cat:'Dolci e Snack',sub:'Torte',em:'🎂',tags:['crostata','di frutta','al cioccolato','cheesecake','tiramisù','creme caramel'],gluten:true,lactose:true,fodmap:'high'},
+  {id:'cioccolato',nome:'Cioccolato',cat:'Dolci e Snack',sub:'Cioccolato',em:'🍫',tags:['fondente','al latte','bianco','con frutta secca'],gluten:false,lactose:true,fodmap:'med'},
+  {id:'gelato',nome:'Gelato',cat:'Dolci e Snack',sub:'Gelato',em:'🍦',tags:['alla frutta','al cioccolato','alla crema','sorbetto'],gluten:false,lactose:true,fodmap:'high'},
+  {id:'croissant',nome:'Croissant / Brioche',cat:'Dolci e Snack',sub:'Pasticceria',em:'🥐',tags:['vuoto','con marmellata','con crema','cornetto'],gluten:true,lactose:true,fodmap:'high'},
+  {id:'snack',nome:'Snack / Patatine',cat:'Dolci e Snack',sub:'Snack',em:'🍿',tags:['patatine','chips','popcorn','merendina','barretta'],gluten:false,lactose:false,fodmap:'low'},
   // BEVANDE
-  {id:'caffe',nome:'Caffè',cat:'Bevande',sub:'Caffè',em:'☕',tags:['espresso','americano','cappuccino','macchiato','lungo','decaffeinato','marocchino']},
-  {id:'te',nome:'Tè / Infuso',cat:'Bevande',sub:'Tè',em:'🍵',tags:['verde','nero','bianco','camomilla','infuso','tisana']},
-  {id:'succo',nome:'Succo di frutta',cat:'Bevande',sub:'Succhi',em:'🧃',tags:['arancia','mela','pesca','misto','centrifugato','frullato']},
-  {id:'bibite',nome:'Bibite',cat:'Bevande',sub:'Bibite',em:'🥤',tags:['cola','aranciata','limonata','gassata','energy drink','tonica']},
-  {id:'acqua',nome:'Acqua',cat:'Bevande',sub:'Acqua',em:'💧',tags:['naturale','frizzante']},
+  {id:'caffe',nome:'Caffè',cat:'Bevande',sub:'Caffè',em:'☕',tags:['espresso','americano','cappuccino','macchiato','lungo','decaffeinato','marocchino'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'te',nome:'Tè / Infuso',cat:'Bevande',sub:'Tè',em:'🍵',tags:['verde','nero','bianco','camomilla','infuso','tisana'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'succo',nome:'Succo di frutta',cat:'Bevande',sub:'Succhi',em:'🧃',tags:['arancia','mela','pesca','misto','centrifugato','frullato'],gluten:false,lactose:false,fodmap:'med'},
+  {id:'bibite',nome:'Bibite',cat:'Bevande',sub:'Bibite',em:'🥤',tags:['cola','aranciata','limonata','gassata','energy drink','tonica'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'acqua',nome:'Acqua',cat:'Bevande',sub:'Acqua',em:'💧',tags:['naturale','frizzante'],gluten:false,lactose:false,fodmap:'low'},
   // ALCOLICI
-  {id:'vino',nome:'Vino',cat:'Alcolici',sub:'Vino',em:'🍷',tags:['rosso','bianco','rosé','bollicine','prosecco','champagne','passito']},
-  {id:'birra',nome:'Birra',cat:'Alcolici',sub:'Birra',em:'🍺',tags:['chiara','scura','artigianale','IPA','rossa','senza glutine','weizen']},
-  {id:'liquori',nome:'Liquori / Distillati',cat:'Alcolici',sub:'Liquori',em:'🥃',tags:['amaro','grappa','whisky','rum','gin','vodka','tequila','limoncello','sambuca']},
-  {id:'cocktail',nome:'Cocktail / Aperitivo',cat:'Alcolici',sub:'Cocktail',em:'🍹',tags:['aperol spritz','negroni','gin tonic','mojito','margarita','americano','hugo']},
+  {id:'vino',nome:'Vino',cat:'Alcolici',sub:'Vino',em:'🍷',tags:['rosso','bianco','rosé','bollicine','prosecco','champagne','passito'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'birra',nome:'Birra',cat:'Alcolici',sub:'Birra',em:'🍺',tags:['chiara','scura','artigianale','IPA','rossa','senza glutine','weizen'],gluten:true,lactose:false,fodmap:'high'},
+  {id:'liquori',nome:'Liquori / Distillati',cat:'Alcolici',sub:'Liquori',em:'🥃',tags:['amaro','grappa','whisky','rum','gin','vodka','tequila','limoncello','sambuca'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'cocktail',nome:'Cocktail / Aperitivo',cat:'Alcolici',sub:'Cocktail',em:'🍹',tags:['aperol spritz','negroni','gin tonic','mojito','margarita','americano','hugo'],gluten:false,lactose:false,fodmap:'low'},
   // CONDIMENTI
-  {id:'olio',nome:'Olio',cat:'Condimenti',sub:'Grassi',em:'🫒',tags:['extravergine d\'oliva','di semi','di cocco']},
-  {id:'burro',nome:'Burro',cat:'Condimenti',sub:'Grassi',em:'🧈',tags:['salato','non salato','chiarificato']},
-  {id:'salse',nome:'Salse',cat:'Condimenti',sub:'Salse',em:'🫙',tags:['ketchup','maionese','pesto','ragù','besciamella','salsa di pomodoro','tahini']},
+  {id:'olio',nome:'Olio',cat:'Condimenti',sub:'Grassi',em:'🫒',tags:['extravergine d\'oliva','di semi','di cocco'],gluten:false,lactose:false,fodmap:'low'},
+  {id:'burro',nome:'Burro',cat:'Condimenti',sub:'Grassi',em:'🧈',tags:['salato','non salato','chiarificato'],gluten:false,lactose:true,fodmap:'low'},
+  {id:'salse',nome:'Salse',cat:'Condimenti',sub:'Salse',em:'🫙',tags:['ketchup','maionese','pesto','ragù','besciamella','salsa di pomodoro','tahini'],gluten:false,lactose:false,fodmap:'med'},
 ];
 
 const CATS = [...new Set(FOODS.map(f => f.cat))];
@@ -414,7 +450,344 @@ async function addCustomFood(uid, food) {
 /* ============================================================
    ADD MEAL
 ============================================================ */
+function FoodDetailPanel({food, selData, onChange}) {
+  // selData = {tags:[], glutenFree:bool, lactoseFree:bool}
+  const sd = selData || {tags:[], glutenFree:false, lactoseFree:false};
+
+  function toggleTag(t) {
+    const tags = sd.tags.includes(t) ? sd.tags.filter(x=>x!==t) : [...sd.tags, t];
+    onChange({...sd, tags});
+  }
+  function toggleGF() { onChange({...sd, glutenFree: !sd.glutenFree}); }
+  function toggleLF() { onChange({...sd, lactoseFree: !sd.lactoseFree}); }
+
+  const fodLabel = {low:'Low FODMAP',med:'Medio FODMAP',high:'High FODMAP'};
+  const fodClass = {low:'fod-low',med:'fod-med',high:'fod-high'};
+
+  return (
+    <div className="fdp">
+      {/* FODMAP badge */}
+      {food.fodmap && (
+        <div style={{marginBottom:9}}>
+          <span className={`fod-badge ${fodClass[food.fodmap]}`}>{fodLabel[food.fodmap]}</span>
+        </div>
+      )}
+
+      {/* TAG */}
+      {food.tags && food.tags.length>0 && (
+        <div className="fdp-section">
+          <div className="fdp-lbl">🏷️ Tag — tocca per selezionare</div>
+          <div className="fdp-tags">
+            {food.tags.map(t=>(
+              <div key={t} className={`fdp-tag ${sd.tags.includes(t)?'on':''}`} onClick={()=>toggleTag(t)}>{t}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* GLUTINE */}
+      {food.gluten && (
+        <div className="fdp-section">
+          <div className="fdp-lbl">🌾 Glutine</div>
+          <div className="fdp-diet">
+            <div className={`fdp-dtog ${!sd.glutenFree?'on':''}`} onClick={()=>sd.glutenFree&&toggleGF()}>
+              <span className="fdp-dtog-ic">🌾</span>
+              <div className="fdp-dtog-info">
+                <div className="fdp-dtog-name">Con glutine</div>
+                <div className="fdp-dtog-val">versione standard</div>
+              </div>
+              {!sd.glutenFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            </div>
+            <div className={`fdp-dtog ${sd.glutenFree?'on':''}`} onClick={()=>!sd.glutenFree&&toggleGF()}>
+              <span className="fdp-dtog-ic">🚫</span>
+              <div className="fdp-dtog-info">
+                <div className="fdp-dtog-name">Senza glutine</div>
+                <div className="fdp-dtog-val">versione GF</div>
+              </div>
+              {sd.glutenFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LATTOSIO */}
+      {food.lactose && (
+        <div className="fdp-section">
+          <div className="fdp-lbl">🥛 Lattosio</div>
+          <div className="fdp-diet">
+            <div className={`fdp-dtog ${!sd.lactoseFree?'on':''}`} onClick={()=>sd.lactoseFree&&toggleLF()}>
+              <span className="fdp-dtog-ic">🥛</span>
+              <div className="fdp-dtog-info">
+                <div className="fdp-dtog-name">Con lattosio</div>
+                <div className="fdp-dtog-val">versione standard</div>
+              </div>
+              {!sd.lactoseFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            </div>
+            <div className={`fdp-dtog ${sd.lactoseFree?'on':''}`} onClick={()=>!sd.lactoseFree&&toggleLF()}>
+              <span className="fdp-dtog-ic">🚫</span>
+              <div className="fdp-dtog-info">
+                <div className="fdp-dtog-name">Senza lattosio</div>
+                <div className="fdp-dtog-val">versione SL</div>
+              </div>
+              {sd.lactoseFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AddMeal({uid, allFoods, onSaved}) {
+  const today = toDateStr(new Date());
+  const [date, setDate]   = useState(today);
+  const [mt,   setMt]     = useState('pranzo');
+  const [sel,  setSel]    = useState([]); // [{...food}]
+  const [fdata, setFdata] = useState({}); // {foodId: {tags:[], glutenFree:bool, lactoseFree:bool}}
+  const [nota, setNota]   = useState('');
+  const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState(null); // quale food è espanso nel panel
+
+  // browse state
+  const [inputMode, setInputMode] = useState('browse');
+  const [selCat,  setSelCat]  = useState(null);
+  const [selSub,  setSelSub]  = useState(null);
+
+  // search state
+  const [q, setQ]           = useState('');
+  const [showDd, setShowDd] = useState(false);
+  const ddRef = useRef();
+
+  const allCats = useMemo(() => [...new Set(allFoods.map(f=>f.cat))], [allFoods]);
+  const subsForCat = useMemo(() => {
+    if(!selCat) return [];
+    return [...new Set(allFoods.filter(f=>f.cat===selCat).map(f=>f.sub))];
+  }, [selCat, allFoods]);
+  const foodsToShow = useMemo(() => {
+    if(!selCat) return [];
+    return allFoods.filter(f => f.cat===selCat && (!selSub || f.sub===selSub));
+  }, [selCat, selSub, allFoods]);
+  const searchResults = useMemo(() => {
+    if(q.length < 2) return [];
+    const lq = q.toLowerCase();
+    return allFoods.filter(f => f.nome.toLowerCase().includes(lq) || f.cat.toLowerCase().includes(lq)).slice(0,20);
+  }, [q, allFoods]);
+
+  useEffect(() => {
+    function handler(e) { if(ddRef.current && !ddRef.current.contains(e.target)) setShowDd(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function pick(f) {
+    const already = !!sel.find(x=>x.id===f.id);
+    if(already) {
+      setSel(p=>p.filter(x=>x.id!==f.id));
+      setFdata(p=>{const n={...p};delete n[f.id];return n;});
+      if(expandedId===f.id) setExpandedId(null);
+    } else {
+      setSel(p=>[...p,f]);
+      setFdata(p=>({...p,[f.id]:{tags:[],glutenFree:false,lactoseFree:false}}));
+      setExpandedId(f.id); // apre subito il pannello
+    }
+    setQ(''); setShowDd(false);
+  }
+
+  function goBack() { if(selSub) setSelSub(null); else setSelCat(null); }
+
+  async function save() {
+    if(!sel.length) return;
+    setSaving(true);
+    try {
+      await saveMeal(uid, {
+        data: dayStart(date),
+        tipoPasto: mt,
+        alimenti: sel.map(f=>{
+          const d = fdata[f.id]||{};
+          return {
+            foodId:f.id, nome:f.nome, em:f.em||'🍽️', cat:f.cat, sub:f.sub,
+            tags: d.tags||[],
+            glutenFree: !!(d.glutenFree),
+            lactoseFree: !!(d.lactoseFree),
+            fodmap: f.fodmap||null,
+            gluten: f.gluten||false,
+            lactose: f.lactose||false,
+          };
+        }),
+        nota: nota.trim()
+      });
+      setSel([]); setFdata({}); setNota('');
+      setSelCat(null); setSelSub(null); setQ(''); setExpandedId(null);
+      onSaved('✅ Pasto salvato!');
+    } catch(e) { onSaved('❌ Errore: '+e.message); }
+    setSaving(false);
+  }
+
+  const FOD_CL = {low:'fod-low',med:'fod-med',high:'fod-high'};
+  const FOD_LB = {low:'Low',med:'Med',high:'High'};
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">✍️ Nuovo pasto</div>
+
+        <div className="ig">
+          <label className="lbl">Data</label>
+          <input type="date" className="inp" value={date} max={today} onChange={e=>setDate(e.target.value)}/>
+        </div>
+
+        <div className="ig">
+          <label className="lbl">Tipo pasto</label>
+          <div className="mt-grid">
+            {MEAL_TYPES.map(m=>(
+              <div key={m.id} className={`mt-btn ${mt===m.id?'on':''}`} onClick={()=>setMt(m.id)}>
+                <span className="mt-ic">{m.ic}</span>
+                <span className="mt-lb">{m.lbl}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="ig">
+          <label className="lbl">Alimenti</label>
+
+          <div className="search-mode-toggle">
+            <button className={`smt-btn ${inputMode==='browse'?'on':''}`} onClick={()=>setInputMode('browse')}>🗂️ Sfoglia</button>
+            <button className={`smt-btn ${inputMode==='search'?'on':''}`} onClick={()=>setInputMode('search')}>🔍 Cerca</button>
+          </div>
+
+          {/* CERCA */}
+          {inputMode==='search' && (
+            <div className="fs-wrap" ref={ddRef}>
+              <input className="inp" placeholder="Cerca alimento..." value={q}
+                onChange={e=>{setQ(e.target.value);setShowDd(true);}} onFocus={()=>setShowDd(true)}/>
+              {showDd && searchResults.length>0 && (
+                <div className="fs-dd">
+                  {searchResults.map(f=>(
+                    <div key={f.id} className="fs-item" onClick={()=>pick(f)}>
+                      <span>{f.em} {f.nome}</span>
+                      <div style={{display:'flex',alignItems:'center',gap:5}}>
+                        {f.fodmap && <span className={`fod-badge ${FOD_CL[f.fodmap]}`}>{FOD_LB[f.fodmap]}</span>}
+                        <span className="fs-cat">{f.cat}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SFOGLIA */}
+          {inputMode==='browse' && (
+            <div>
+              {selCat && (
+                <div className="cb-breadcrumb">
+                  <button className="cb-back" onClick={goBack}>←</button>
+                  <span className="cb-path">{CAT_ICONS[selCat]||'🍽️'} <strong>{selCat}</strong>{selSub&&<> › {selSub}</>}</span>
+                </div>
+              )}
+              {!selCat && (
+                <div className="cb-grid">
+                  {allCats.map(cat=>(
+                    <div key={cat} className="cb-cat" onClick={()=>{setSelCat(cat);setSelSub(null);}}>
+                      <span className="cb-cat-em">{CAT_ICONS[cat]||'🍽️'}</span>
+                      <span className="cb-cat-name">{cat}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selCat && subsForCat.length>1 && (
+                <div className="cb-subs">
+                  <div className={`cb-sub ${!selSub?'on':''}`} onClick={()=>setSelSub(null)}>Tutti</div>
+                  {subsForCat.map(s=>(
+                    <div key={s} className={`cb-sub ${selSub===s?'on':''}`} onClick={()=>setSelSub(s)}>{s}</div>
+                  ))}
+                </div>
+              )}
+              {selCat && (
+                <div className="cb-foods">
+                  {foodsToShow.map(f=>{
+                    const isAdded = !!sel.find(x=>x.id===f.id);
+                    const isOpen  = expandedId===f.id;
+                    return (
+                      <div key={f.id}>
+                        <div className={`cb-food ${isAdded?'added':''}`}
+                          onClick={()=>{ if(isAdded){ setExpandedId(isOpen?null:f.id); } else { pick(f); } }}>
+                          <span className="cb-food-em">{f.em}</span>
+                          <div style={{flex:1}}>
+                            <div className="cb-food-name">{f.nome}</div>
+                            <div style={{display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
+                              {f.fodmap && <span className={`fod-badge ${FOD_CL[f.fodmap]}`}>{FOD_LB[f.fodmap]}</span>}
+                              {f.gluten && <span className="fod-badge" style={{background:'rgba(232,168,76,.1)',color:'#c8943c',border:'1px solid rgba(232,168,76,.25)'}}>🌾</span>}
+                              {f.lactose && <span className="fod-badge" style={{background:'rgba(160,160,200,.1)',color:'#9090bb',border:'1px solid rgba(160,160,200,.25)'}}>🥛</span>}
+                            </div>
+                          </div>
+                          {isAdded
+                            ? <span style={{color:'var(--green)',fontSize:14,marginRight:2}}>{isOpen?'▲':'▼'}</span>
+                            : <span style={{color:'var(--text3)',fontSize:18,lineHeight:1}}>＋</span>}
+                        </div>
+                        {isAdded && isOpen && (
+                          <FoodDetailPanel food={f} selData={fdata[f.id]}
+                            onChange={d=>setFdata(p=>({...p,[f.id]:d}))}/>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* RIEPILOGO SELEZIONATI */}
+        {sel.length>0 && (
+          <>
+            <div className="divider"/>
+            <label className="lbl" style={{marginBottom:8,display:'block'}}>Nel pasto ({sel.length})</label>
+            <div className="sf-list">
+              {sel.map(f=>{
+                const d = fdata[f.id]||{};
+                const isOpen = expandedId===f.id;
+                return (
+                  <div key={f.id}>
+                    <div className="sf-item" style={{cursor:'pointer'}} onClick={()=>setExpandedId(isOpen?null:f.id)}>
+                      <span className="sf-em">{f.em}</span>
+                      <div className="sf-info">
+                        <div className="sf-name">{f.nome}</div>
+                        <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:3}}>
+                          {d.tags&&d.tags.map(t=><span key={t} className="tag on" style={{fontSize:10,padding:'2px 7px'}}>{t}</span>)}
+                          {d.glutenFree  && <span className="badge badge-g">senza glutine</span>}
+                          {d.lactoseFree && <span className="badge badge-g">senza lattosio</span>}
+                          {!d.tags?.length && !d.glutenFree && !d.lactoseFree && (
+                            <span style={{fontSize:10,color:'var(--text3)'}}>tocca per aggiungere tag ▼</span>
+                          )}
+                        </div>
+                      </div>
+                      <button className="ico-btn" onClick={e=>{e.stopPropagation();setSel(p=>p.filter(x=>x.id!==f.id));setFdata(p=>{const n={...p};delete n[f.id];return n;});if(expandedId===f.id)setExpandedId(null);}}>✕</button>
+                    </div>
+                    {isOpen && (
+                      <FoodDetailPanel food={f} selData={fdata[f.id]}
+                        onChange={d=>setFdata(p=>({...p,[f.id]:d}))}/>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        <div className="ig">
+          <label className="lbl">Note (opzionale)</label>
+          <textarea className="inp" placeholder="Dove hai mangiato, com'era, con chi..." value={nota} onChange={e=>setNota(e.target.value)}/>
+        </div>
+
+        <button className="btn btn-p btn-full" onClick={save} disabled={saving||sel.length===0}>
+          {saving ? 'Salvataggio...' : sel.length===0 ? 'Seleziona almeno un alimento' : `💾 Salva pasto (${sel.length} ${sel.length===1?'alimento':'alimenti'})`}
+        </button>
+      </div>
+    </div>
+  );
+}
   const today = toDateStr(new Date());
   const [date, setDate] = useState(today);
   const [mt,   setMt]   = useState('pranzo');
@@ -598,46 +971,6 @@ function AddMeal({uid, allFoods, onSaved}) {
           )}
         </div>
 
-        {/* ALIMENTI SELEZIONATI */}
-        {sel.length>0 && (
-          <>
-            <div className="divider"/>
-            <label className="lbl" style={{marginBottom:8,display:'block'}}>Nel pasto ({sel.length})</label>
-            <div className="sf-list">
-              {sel.map(f=>(
-                <div key={f.id} className="sf-item">
-                  <span className="sf-em">{f.em}</span>
-                  <div className="sf-info">
-                    <div className="sf-name">{f.nome}</div>
-                    {f.tags && f.tags.length>0 && (
-                      <div className="tag-wrap">
-                        {f.tags.map(t=>(
-                          <span key={t} className={`tag ${(tags[f.id]||[]).includes(t)?'on':''}`}
-                            onClick={()=>toggleTag(f.id,t)}>{t}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button className="ico-btn" onClick={()=>remove(f.id)}>✕</button>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="ig">
-          <label className="lbl">Note (opzionale)</label>
-          <textarea className="inp" placeholder="Dove hai mangiato, com'era, con chi..." value={nota} onChange={e=>setNota(e.target.value)}/>
-        </div>
-
-        <button className="btn btn-p btn-full" onClick={save} disabled={saving||sel.length===0}>
-          {saving ? 'Salvataggio...' : sel.length===0 ? 'Seleziona almeno un alimento' : `💾 Salva pasto (${sel.length} ${sel.length===1?'alimento':'alimenti'})`}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ============================================================
    DIARY
 ============================================================ */
@@ -721,7 +1054,13 @@ function Diary({uid}) {
                   {(l.alimenti||[]).map((a,i)=>(
                     <span key={i} className="dy-chip">
                       <span>{a.em}</span>
-                      <span>{a.nome}{a.tags&&a.tags.length>0?` (${a.tags.join(', ')})`:''}</span>
+                      <span>
+                        {a.nome}
+                        {a.tags&&a.tags.length>0?` · ${a.tags.join(', ')}` :''}
+                      </span>
+                      {a.glutenFree  && <span style={{fontSize:10,color:'var(--green)'}}>GF</span>}
+                      {a.lactoseFree && <span style={{fontSize:10,color:'var(--green)'}}>SL</span>}
+                      {a.fodmap && <span className={`fod-badge ${({low:'fod-low',med:'fod-med',high:'fod-high'})[a.fodmap]}`} style={{fontSize:8}}>{({low:'Low',med:'Med',high:'High'})[a.fodmap]}</span>}
                     </span>
                   ))}
                 </div>
@@ -739,17 +1078,19 @@ function Diary({uid}) {
    STATS
 ============================================================ */
 function Stats({uid, allFoods}) {
-  const [mode, setMode] = useState('count');  // count | last | top
+  const [mode, setMode] = useState('count');
   const [q,    setQ]    = useState('');
   const [showDd, setShowDd] = useState(false);
   const [selFood, setSelFood] = useState(null);
-  const [period, setPeriod]  = useState('week');  // week | month | pick
+  const [period, setPeriod]  = useState('week');
   const [py, setPy] = useState(new Date().getFullYear());
   const [pm, setPm] = useState(new Date().getMonth());
-  const [res, setRes]     = useState(null);
+  const [res, setRes]       = useState(null);
   const [loading, setLoading] = useState(false);
-  const [top, setTop]     = useState([]);
+  const [top, setTop]       = useState([]);
   const [topLoad,setTopLoad] = useState(false);
+  const [diet, setDiet]     = useState(null);
+  const [dietLoad,setDietLoad] = useState(false);
   const ddRef = useRef();
 
   useEffect(()=>{
@@ -825,7 +1166,30 @@ function Stats({uid, allFoods}) {
     setTopLoad(false);
   }
 
-  useEffect(()=>{ if(mode==='top') loadTop(); else setTop([]); },[mode,period,py,pm]);
+  async function loadDiet() {
+    setDietLoad(true);
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      let gfCount=0, lfCount=0, fodLow=0, fodMed=0, fodHigh=0, total=0;
+      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
+        total++;
+        if(a.glutenFree)  gfCount++;
+        if(a.lactoseFree) lfCount++;
+        if(a.fodmap==='low')  fodLow++;
+        if(a.fodmap==='med')  fodMed++;
+        if(a.fodmap==='high') fodHigh++;
+      }));
+      setDiet({gfCount,lfCount,fodLow,fodMed,fodHigh,total,meals:logs.length});
+    } catch(e) { console.error(e); setDiet(null); }
+    setDietLoad(false);
+  }
+
+  useEffect(()=>{
+    if(mode==='top')  { loadTop(); setDiet(null); }
+    else if(mode==='diet') { loadDiet(); setTop([]); }
+    else { setTop([]); setDiet(null); }
+  },[mode,period,py,pm]);
 
   const PeriodSelector = () => (
     <div className="card" style={{marginBottom:11}}>
@@ -855,7 +1219,7 @@ function Stats({uid, allFoods}) {
   return (
     <div>
       <div className="pills">
-        {[{id:'count',lbl:'🔢 Conta volte'},{id:'last',lbl:'🕐 Ultima volta'},{id:'top',lbl:'🏆 Top alimenti'}].map(m=>(
+        {[{id:'count',lbl:'🔢 Conta'},{id:'last',lbl:'🕐 Ultima'},{id:'top',lbl:'🏆 Top'},{id:'diet',lbl:'🥗 Dieta'}].map(m=>(
           <div key={m.id} className={`pill ${mode===m.id?'on':''}`} onClick={()=>{setMode(m.id);setRes(null);}}>
             {m.lbl}
           </div>
@@ -942,6 +1306,49 @@ function Stats({uid, allFoods}) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* DIETA */}
+      {mode==='diet' && (
+        dietLoad ? <div className="spin-wrap"><div className="spinner"/></div>
+        : !diet ? <div className="empty"><div className="empty-ic">🥗</div><div className="empty-tx">Nessun dato.</div></div>
+        : (
+          <>
+            <div className="card">
+              <div className="card-title">🥗 Analisi dieta — {getPeriodLabel()}</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>{diet.meals} pasti · {diet.total} alimenti registrati</div>
+
+              <div className="ds-grid">
+                <div className="ds-card">
+                  <div className="ds-ic">🌾</div>
+                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.gfCount}</div>
+                  <div className="ds-lbl">porzioni<br/>senza glutine</div>
+                </div>
+                <div className="ds-card">
+                  <div className="ds-ic">🥛</div>
+                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.lfCount}</div>
+                  <div className="ds-lbl">porzioni<br/>senza lattosio</div>
+                </div>
+              </div>
+
+              <label className="lbl" style={{marginBottom:8,display:'block'}}>Distribuzione FODMAP</label>
+              {diet.total>0 ? (
+                <>
+                  <div className="fodmap-bar">
+                    <div className="fodmap-seg" style={{width:`${(diet.fodLow/diet.total)*100}%`,background:'#7ab87a'}}/>
+                    <div className="fodmap-seg" style={{width:`${(diet.fodMed/diet.total)*100}%`,background:'#e8a84c'}}/>
+                    <div className="fodmap-seg" style={{width:`${(diet.fodHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
+                  </div>
+                  <div className="fodmap-legend">
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Low: {diet.fodLow} ({Math.round(diet.fodLow/diet.total*100)}%)</div>
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Med: {diet.fodMed} ({Math.round(diet.fodMed/diet.total*100)}%)</div>
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> High: {diet.fodHigh} ({Math.round(diet.fodHigh/diet.total*100)}%)</div>
+                  </div>
+                </>
+              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato FODMAP disponibile</div>}
+            </div>
+          </>
+        )
       )}
     </div>
   );
