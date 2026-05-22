@@ -179,6 +179,14 @@ textarea.inp{resize:none;height:66px;}
 .wt-info{flex:1;min-width:0;}
 .wt-date{font-size:12px;color:var(--tx2);}
 .wt-meta{font-size:10px;color:var(--tx3);margin-top:2px;}
+.off-card{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:11px;margin-bottom:8px;}
+.off-name{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;}
+.off-brand{font-size:11px;color:var(--tx3);margin-bottom:6px;}
+.off-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
+.off-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.off-g{background:rgba(232,122,122,.15);color:#e87a7a;border:1px solid rgba(232,122,122,.3);}
+.off-l{background:rgba(160,160,200,.15);color:#9090bb;border:1px solid rgba(160,160,200,.3);}
+.off-ok{background:rgba(122,184,122,.15);color:#7ab87a;border:1px solid rgba(122,184,122,.3);}
 </style>
 </head>
 <body>
@@ -388,6 +396,26 @@ function getWeights(uid,start,end){
     .then(function(s){return s.docs.map(function(d){return Object.assign({id:d.id},d.data());});});
 }
 function delWeight(id){return db.collection('foodDiary_weights').doc(id).delete();}
+
+function searchOpenFoodFacts(query){
+  var url='https://it.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(query)+'&search_simple=1&action=process&json=1&page_size=15&lc=it&cc=it&fields=product_name,brands,allergens_tags,categories_tags,image_small_url,code';
+  return fetch(url).then(function(r){return r.json();}).then(function(data){
+    return (data.products||[]).filter(function(p){return p.product_name;}).map(function(p){
+      var allergens=p.allergens_tags||[];
+      var hasGluten=allergens.indexOf('en:gluten')>=0||allergens.indexOf('en:wheat')>=0;
+      var hasLactose=allergens.indexOf('en:milk')>=0||allergens.indexOf('en:lactose')>=0;
+      return {
+        code:p.code,
+        nome:(p.product_name||'').substring(0,60),
+        brand:p.brands||'',
+        gluten:hasGluten,
+        lactose:hasLactose,
+        allergens:allergens,
+        image:p.image_small_url||null
+      };
+    });
+  });
+}
 function getLogs(uid,start,end){
   return db.collection('foodDiary_logs').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','desc').get()
     .then(function(s){ return s.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }); });
@@ -1468,6 +1496,15 @@ function Catalog(props){
   var showS=useState(false), show=showS[0], setShow=showS[1];
   var nfS=useState({nome:'',cat:'',sub:'',em:'',tags:''}), nf=nfS[0], setNf=nfS[1];
   var savS=useState(false), saving=savS[0], setSaving=savS[1];
+
+  // Open Food Facts
+  var offTabS=useState('catalog'), offTab=offTabS[0], setOffTab=offTabS[1];
+  var offQS=useState(''), offQ=offQS[0], setOffQ=offQS[1];
+  var offResS=useState([]), offRes=offResS[0], setOffRes=offResS[1];
+  var offLoadS=useState(false), offLoad=offLoadS[0], setOffLoad=offLoadS[1];
+  var offErrS=useState(''), offErr=offErrS[0], setOffErr=offErrS[1];
+  var offAddedS=useState({}), offAdded=offAddedS[0], setOffAdded=offAddedS[1];
+
   var allFoods=FOODS.concat(custom);
   var CATS=[];
   FOODS.forEach(function(f){if(CATS.indexOf(f.cat)<0)CATS.push(f.cat);});
@@ -1496,63 +1533,155 @@ function Catalog(props){
     }).finally(function(){setSaving(false);});
   }
 
+  function searchOFF(){
+    if(offQ.trim().length<2) return;
+    setOffLoad(true); setOffErr(''); setOffRes([]);
+    searchOpenFoodFacts(offQ.trim())
+      .then(function(results){
+        setOffRes(results);
+        if(results.length===0) setOffErr('Nessun prodotto trovato. Prova con un termine diverso.');
+      })
+      .catch(function(){setOffErr('Errore di rete. Controlla la connessione.');})
+      .finally(function(){setOffLoad(false);});
+  }
+
+  function addFromOFF(p){
+    var food={
+      id:'off_'+p.code+'_'+Date.now(),
+      nome:p.nome+(p.brand?' ('+p.brand+')':''),
+      cat:'Prodotti confezionati',
+      sub:p.brand||'Vari',
+      em:'🛒',
+      tags:[p.gluten?'contiene glutine':'senza glutine',p.lactose?'contiene lattosio':'senza lattosio'],
+      gluten:p.gluten,
+      lactose:p.lactose,
+      custom:true,
+      offCode:p.code
+    };
+    addCustomFood(uid,food).then(function(docId){
+      onAdded(Object.assign({},food,{firestoreId:docId}));
+      setOffAdded(function(prev){var n=Object.assign({},prev);n[p.code]=true;return n;});
+    });
+  }
+
   return (
     <div>
-      <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <input className="inp" style={{flex:1}} placeholder="Filtra catalogo..." value={fq} onChange={function(e){setFq(e.target.value);}}/>
-        <button className="btn btn-p" onClick={function(){setShow(function(s){return !s;});}}>+ Nuovo</button>
+      {/* Tab switch */}
+      <div className="smtog" style={{marginBottom:12}}>
+        <button className={'smt-btn'+(offTab==='catalog'?' on':'')} onClick={function(){setOffTab('catalog');}}>📚 Catalogo</button>
+        <button className={'smt-btn'+(offTab==='off'?' on':'')} onClick={function(){setOffTab('off');}}>🌍 Open Food Facts</button>
       </div>
-      {show && (
-        <div className="card" style={{marginBottom:12}}>
-          <div className="card-title">Aggiungi alimento</div>
-          <div className="ig"><label className="lbl">Nome *</label>
-            <input className="inp" value={nf.nome} onChange={function(e){setNf(function(p){return Object.assign({},p,{nome:e.target.value});});}}/>
+
+      {offTab==='catalog' && (
+        <div>
+          <div style={{display:'flex',gap:8,marginBottom:12}}>
+            <input className="inp" style={{flex:1}} placeholder="Filtra catalogo..." value={fq} onChange={function(e){setFq(e.target.value);}}/>
+            <button className="btn btn-p" onClick={function(){setShow(function(s){return !s;});}}>+ Nuovo</button>
           </div>
-          <div className="row2">
-            <div className="ig"><label className="lbl">Emoji</label>
-              <input className="inp" value={nf.em} onChange={function(e){setNf(function(p){return Object.assign({},p,{em:e.target.value});});}}/>
+          {show && (
+            <div className="card" style={{marginBottom:12}}>
+              <div className="card-title">Aggiungi alimento</div>
+              <div className="ig"><label className="lbl">Nome *</label>
+                <input className="inp" value={nf.nome} onChange={function(e){setNf(function(p){return Object.assign({},p,{nome:e.target.value});});}}/>
+              </div>
+              <div className="row2">
+                <div className="ig"><label className="lbl">Emoji</label>
+                  <input className="inp" value={nf.em} onChange={function(e){setNf(function(p){return Object.assign({},p,{em:e.target.value});});}}/>
+                </div>
+                <div className="ig"><label className="lbl">Categoria *</label>
+                  <input className="inp" list="cat-list" value={nf.cat} onChange={function(e){setNf(function(p){return Object.assign({},p,{cat:e.target.value});});}}/>
+                  <datalist id="cat-list">{CATS.map(function(c){return <option key={c} value={c}/>;})}</datalist>
+                </div>
+              </div>
+              <div className="ig"><label className="lbl">Sottocategoria</label>
+                <input className="inp" value={nf.sub} onChange={function(e){setNf(function(p){return Object.assign({},p,{sub:e.target.value});});}}/>
+              </div>
+              <div className="ig"><label className="lbl">Tag (virgola)</label>
+                <input className="inp" value={nf.tags} onChange={function(e){setNf(function(p){return Object.assign({},p,{tags:e.target.value});});}}/>
+              </div>
+              <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>{saving?'Salvataggio...':'Salva'}</button>
             </div>
-            <div className="ig"><label className="lbl">Categoria *</label>
-              <input className="inp" list="cat-list" value={nf.cat} onChange={function(e){setNf(function(p){return Object.assign({},p,{cat:e.target.value});});}}/>
-              <datalist id="cat-list">{CATS.map(function(c){return <option key={c} value={c}/>;})}</datalist>
-            </div>
-          </div>
-          <div className="ig"><label className="lbl">Sottocategoria</label>
-            <input className="inp" value={nf.sub} onChange={function(e){setNf(function(p){return Object.assign({},p,{sub:e.target.value});});}}/>
-          </div>
-          <div className="ig"><label className="lbl">Tag (virgola)</label>
-            <input className="inp" value={nf.tags} onChange={function(e){setNf(function(p){return Object.assign({},p,{tags:e.target.value});});}}/>
-          </div>
-          <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>{saving?'Salvataggio...':'Salva'}</button>
+          )}
+          {Object.entries(grouped).map(function(entry){
+            var cat=entry[0], foods=entry[1];
+            return (
+              <div key={cat} style={{marginBottom:8}}>
+                <div className="cat-hdr" onClick={function(){setOpen(function(p){var n=Object.assign({},p);n[cat]=!n[cat];return n;});}}>
+                  <span className="cat-hdr-name">{CAT_ICONS[cat]||'🍽️'} {cat}</span>
+                  <span className="cat-hdr-cnt">{foods.length}</span>
+                  <span style={{color:'var(--tx3)',fontSize:11}}>{open[cat]?'▲':'▼'}</span>
+                </div>
+                {open[cat] && (
+                  <div className="cat-items">
+                    {foods.map(function(f){
+                      return (
+                        <div key={f.id} className="cat-food">
+                          <span className="cat-food-em">{f.em}</span>
+                          <div style={{flex:1}}>
+                            <div className="cat-food-name">{f.nome}{f.custom?<span className="badge badge-g" style={{marginLeft:5}}>custom</span>:null}</div>
+                            <div className="cat-food-sub">{f.sub}{f.tags&&f.tags.length?' · '+f.tags.slice(0,3).join(', '):''}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-      {Object.entries(grouped).map(function(entry){
-        var cat=entry[0], foods=entry[1];
-        return (
-          <div key={cat} style={{marginBottom:8}}>
-            <div className="cat-hdr" onClick={function(){setOpen(function(p){var n=Object.assign({},p);n[cat]=!n[cat];return n;});}}>
-              <span className="cat-hdr-name">{CAT_ICONS[cat]||'🍽️'} {cat}</span>
-              <span className="cat-hdr-cnt">{foods.length}</span>
-              <span style={{color:'var(--tx3)',fontSize:11}}>{open[cat]?'▲':'▼'}</span>
+
+      {offTab==='off' && (
+        <div>
+          <div className="card" style={{marginBottom:12}}>
+            <div className="card-title">🌍 Cerca su Open Food Facts</div>
+            <div style={{fontSize:12,color:'var(--tx3)',marginBottom:10,lineHeight:1.5}}>
+              Database pubblico con milioni di prodotti confezionati. Rileva automaticamente glutine e lattosio dagli allergeni dichiarati in etichetta.
             </div>
-            {open[cat] && (
-              <div className="cat-items">
-                {foods.map(function(f){
-                  return (
-                    <div key={f.id} className="cat-food">
-                      <span className="cat-food-em">{f.em}</span>
-                      <div style={{flex:1}}>
-                        <div className="cat-food-name">{f.nome}{f.custom?<span className="badge badge-g" style={{marginLeft:5}}>custom</span>:null}</div>
-                        <div className="cat-food-sub">{f.sub}{f.tags&&f.tags.length?' · '+f.tags.slice(0,3).join(', '):''}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div style={{display:'flex',gap:8}}>
+              <input className="inp" style={{flex:1}} placeholder="es. Mulino Bianco fette biscottate"
+                value={offQ}
+                onChange={function(e){setOffQ(e.target.value);}}
+                onKeyDown={function(e){if(e.key==='Enter')searchOFF();}}/>
+              <button className="btn btn-p" onClick={searchOFF} disabled={offLoad||offQ.trim().length<2}>
+                {offLoad?'…':'Cerca'}
+              </button>
+            </div>
           </div>
-        );
-      })}
+
+          {offLoad && <div className="spin-wrap"><div className="spinner"/></div>}
+          {offErr && <div style={{fontSize:13,color:'var(--tx3)',textAlign:'center',padding:'12px 0'}}>{offErr}</div>}
+
+          {offRes.map(function(p){
+            var added=!!offAdded[p.code];
+            return (
+              <div key={p.code} className="off-card">
+                <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+                  {p.image && <img src={p.image} alt="" style={{width:44,height:44,objectFit:'contain',borderRadius:6,flexShrink:0,background:'#fff'}}/>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="off-name">{p.nome}</div>
+                    {p.brand && <div className="off-brand">{p.brand}</div>}
+                    <div className="off-badges">
+                      {p.gluten
+                        ? <span className="off-badge off-g">🌾 Contiene glutine</span>
+                        : <span className="off-badge off-ok">✅ Senza glutine</span>}
+                      {p.lactose
+                        ? <span className="off-badge off-l">🥛 Contiene lattosio</span>
+                        : <span className="off-badge off-ok">✅ Senza lattosio</span>}
+                    </div>
+                  </div>
+                </div>
+                <button className={'btn btn-full btn-sm '+(added?'btn-s':'btn-p')}
+                  onClick={function(){if(!added)addFromOFF(p);}}
+                  disabled={added}>
+                  {added?'✓ Aggiunto al catalogo':'+ Aggiungi al catalogo'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
