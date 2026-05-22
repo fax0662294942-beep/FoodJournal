@@ -1504,6 +1504,12 @@ function Catalog(props){
   var offLoadS=useState(false), offLoad=offLoadS[0], setOffLoad=offLoadS[1];
   var offErrS=useState(''), offErr=offErrS[0], setOffErr=offErrS[1];
   var offAddedS=useState({}), offAdded=offAddedS[0], setOffAdded=offAddedS[1];
+  var offEditS=useState({}), offEdit=offEditS[0], setOffEdit=offEditS[1]; // {code: {gluten,lactose,fodmap,gi}}
+  var offOpenS=useState(null), offOpen=offOpenS[0], setOffOpen=offOpenS[1]; // codice prodotto aperto
+
+  // Edit prodotto esistente
+  var editIdS=useState(null), editId=editIdS[0], setEditId=editIdS[1];
+  var editDataS=useState({}), editData=editDataS[0], setEditData=editDataS[1];
 
   var allFoods=FOODS.concat(custom);
   var CATS=[];
@@ -1546,22 +1552,88 @@ function Catalog(props){
   }
 
   function addFromOFF(p){
+    var ed = offEdit[p.code] || {};
     var food={
       id:'off_'+p.code+'_'+Date.now(),
       nome:p.nome+(p.brand?' ('+p.brand+')':''),
       cat:'Prodotti confezionati',
       sub:p.brand||'Vari',
       em:'🛒',
-      tags:[p.gluten?'contiene glutine':'senza glutine',p.lactose?'contiene lattosio':'senza lattosio'],
-      gluten:p.gluten,
-      lactose:p.lactose,
+      tags:[],
+      gluten: ed.gluten!==undefined ? ed.gluten : p.gluten,
+      lactose: ed.lactose!==undefined ? ed.lactose : p.lactose,
+      fodmap: ed.fodmap||null,
+      gi: ed.gi||null,
       custom:true,
       offCode:p.code
     };
     addCustomFood(uid,food).then(function(docId){
       onAdded(Object.assign({},food,{firestoreId:docId}));
       setOffAdded(function(prev){var n=Object.assign({},prev);n[p.code]=true;return n;});
+      setOffOpen(null);
     });
+  }
+
+  function saveEdit(){
+    if(!editId) return;
+    db.collection('foodDiary_custom_foods').doc(editId).update(editData)
+      .then(function(){
+        window.location.reload();
+      }).catch(function(e){console.error(e);});
+  }
+
+  // Helper pannello diet
+  function DietPanel(props){
+    var v=props.value, onChange=props.onChange;
+    var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
+    function tog2(field,val){ onChange(Object.assign({},v,{[field]:val})); }
+    function tog3(field,val){ onChange(Object.assign({},v,{[field]:v[field]===val?null:val})); }
+    return (
+      <div style={{padding:'8px 0 4px'}}>
+        <div style={{display:'flex',gap:7,marginBottom:8}}>
+          <div style={{flex:1}}>
+            <div className="lbl" style={{marginBottom:4}}>Glutine</div>
+            <div style={{display:'flex',gap:4}}>
+              <div className={'fdp-dtog'+(v.gluten?'':' on')} style={{flex:1,padding:'5px 6px'}} onClick={function(){tog2('gluten',false);}}>
+                <span style={{fontSize:12}}>🚫</span><div className="fdp-dtog-name" style={{fontSize:10}}>Senza</div>
+              </div>
+              <div className={'fdp-dtog'+(v.gluten?' on':'')} style={{flex:1,padding:'5px 6px'}} onClick={function(){tog2('gluten',true);}}>
+                <span style={{fontSize:12}}>🌾</span><div className="fdp-dtog-name" style={{fontSize:10}}>Con</div>
+              </div>
+            </div>
+          </div>
+          <div style={{flex:1}}>
+            <div className="lbl" style={{marginBottom:4}}>Lattosio</div>
+            <div style={{display:'flex',gap:4}}>
+              <div className={'fdp-dtog'+(v.lactose?'':' on')} style={{flex:1,padding:'5px 6px'}} onClick={function(){tog2('lactose',false);}}>
+                <span style={{fontSize:12}}>🚫</span><div className="fdp-dtog-name" style={{fontSize:10}}>Senza</div>
+              </div>
+              <div className={'fdp-dtog'+(v.lactose?' on':'')} style={{flex:1,padding:'5px 6px'}} onClick={function(){tog2('lactose',true);}}>
+                <span style={{fontSize:12}}>🥛</span><div className="fdp-dtog-name" style={{fontSize:10}}>Con</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:7}}>
+          <div style={{flex:1}}>
+            <div className="lbl" style={{marginBottom:4}}>FODMAP</div>
+            <div style={{display:'flex',gap:3}}>
+              {['low','med','high'].map(function(lv){
+                return <div key={lv} className={'fbadge '+CL[lv]} style={{flex:1,textAlign:'center',padding:'5px 2px',cursor:'pointer',opacity:v.fodmap===lv?1:0.35,transition:'opacity .15s'}} onClick={function(){tog3('fodmap',lv);}}>{lv}</div>;
+              })}
+            </div>
+          </div>
+          <div style={{flex:1}}>
+            <div className="lbl" style={{marginBottom:4}}>GI</div>
+            <div style={{display:'flex',gap:3}}>
+              {['low','med','high'].map(function(lv){
+                return <div key={lv} className={'fbadge '+CL[lv]} style={{flex:1,textAlign:'center',padding:'5px 2px',cursor:'pointer',opacity:v.gi===lv?1:0.35,transition:'opacity .15s'}} onClick={function(){tog3('gi',lv);}}>{lv}</div>;
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1615,12 +1687,59 @@ function Catalog(props){
                   <div className="cat-items">
                     {foods.map(function(f){
                       return (
-                        <div key={f.id} className="cat-food">
-                          <span className="cat-food-em">{f.em}</span>
-                          <div style={{flex:1}}>
-                            <div className="cat-food-name">{f.nome}{f.custom?<span className="badge badge-g" style={{marginLeft:5}}>custom</span>:null}</div>
-                            <div className="cat-food-sub">{f.sub}{f.tags&&f.tags.length?' · '+f.tags.slice(0,3).join(', '):''}</div>
+                        <div key={f.id}>
+                          <div className="cat-food">
+                            <span className="cat-food-em">{f.em}</span>
+                            <div style={{flex:1}}>
+                              <div className="cat-food-name">{f.nome}{f.custom?<span className="badge badge-g" style={{marginLeft:5}}>custom</span>:null}</div>
+                              <div className="cat-food-sub">
+                                {f.sub}{f.tags&&f.tags.length?' · '+f.tags.slice(0,3).join(', '):''}
+                              </div>
+                              <div style={{display:'flex',gap:3,marginTop:3,flexWrap:'wrap'}}>
+                                {f.fodmap ? <span className={'fbadge fb-'+f.fodmap}>FM {f.fodmap}</span> : null}
+                                {f.gi ? <span className={'fbadge fb-'+f.gi}>GI {f.gi}</span> : null}
+                                {f.gluten ? <span className="fbadge fb-high">G</span> : null}
+                                {f.lactose ? <span className="fbadge" style={{background:'rgba(160,160,200,.1)',color:'#9090bb',border:'1px solid rgba(160,160,200,.25)'}}>L</span> : null}
+                              </div>
+                            </div>
+                            {f.custom && f.firestoreId && (
+                              <button className="ico-btn" style={{fontSize:14}} onClick={function(){
+                                if(editId===f.firestoreId){setEditId(null);}
+                                else{
+                                  setEditId(f.firestoreId);
+                                  setEditData({nome:f.nome,cat:f.cat,sub:f.sub||'',em:f.em||'🍽️',tags:(f.tags||[]).join(', '),gluten:!!f.gluten,lactose:!!f.lactose,fodmap:f.fodmap||null,gi:f.gi||null});
+                                }
+                              }}>✏️</button>
+                            )}
                           </div>
+                          {f.custom && f.firestoreId && editId===f.firestoreId && (
+                            <div className="fdp" style={{marginBottom:6}}>
+                              <div className="lbl" style={{marginBottom:8}}>✏️ Modifica prodotto</div>
+                              <div className="ig">
+                                <label className="lbl">Nome</label>
+                                <input className="inp" value={editData.nome||''} onChange={function(e){setEditData(function(p){return Object.assign({},p,{nome:e.target.value});});}}/>
+                              </div>
+                              <div className="row2">
+                                <div className="ig">
+                                  <label className="lbl">Emoji</label>
+                                  <input className="inp" value={editData.em||''} onChange={function(e){setEditData(function(p){return Object.assign({},p,{em:e.target.value});});}}/>
+                                </div>
+                                <div className="ig">
+                                  <label className="lbl">Categoria</label>
+                                  <input className="inp" value={editData.cat||''} onChange={function(e){setEditData(function(p){return Object.assign({},p,{cat:e.target.value});});}}/>
+                                </div>
+                              </div>
+                              <div className="ig">
+                                <label className="lbl">Tag (virgola)</label>
+                                <input className="inp" value={editData.tags||''} onChange={function(e){setEditData(function(p){return Object.assign({},p,{tags:e.target.value});});}}/>
+                              </div>
+                              <DietPanel value={editData} onChange={setEditData}/>
+                              <div style={{display:'flex',gap:6,marginTop:10}}>
+                                <button className="btn btn-p" style={{flex:1}} onClick={saveEdit}>💾 Salva</button>
+                                <button className="btn btn-s" onClick={function(){setEditId(null);}}>Annulla</button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1655,6 +1774,8 @@ function Catalog(props){
 
           {offRes.map(function(p){
             var added=!!offAdded[p.code];
+            var isOpen=offOpen===p.code;
+            var ed=offEdit[p.code]||{gluten:p.gluten,lactose:p.lactose,fodmap:null,gi:null};
             return (
               <div key={p.code} className="off-card">
                 <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
@@ -1663,20 +1784,32 @@ function Catalog(props){
                     <div className="off-name">{p.nome}</div>
                     {p.brand && <div className="off-brand">{p.brand}</div>}
                     <div className="off-badges">
-                      {p.gluten
+                      {(ed.gluten!==undefined?ed.gluten:p.gluten)
                         ? <span className="off-badge off-g">🌾 Contiene glutine</span>
                         : <span className="off-badge off-ok">✅ Senza glutine</span>}
-                      {p.lactose
+                      {(ed.lactose!==undefined?ed.lactose:p.lactose)
                         ? <span className="off-badge off-l">🥛 Contiene lattosio</span>
                         : <span className="off-badge off-ok">✅ Senza lattosio</span>}
+                      {ed.fodmap ? <span className={'off-badge fbadge fb-'+ed.fodmap}>FM {ed.fodmap}</span> : null}
+                      {ed.gi ? <span className={'off-badge fbadge fb-'+ed.gi}>GI {ed.gi}</span> : null}
                     </div>
                   </div>
                 </div>
-                <button className={'btn btn-full btn-sm '+(added?'btn-s':'btn-p')}
-                  onClick={function(){if(!added)addFromOFF(p);}}
-                  disabled={added}>
-                  {added?'✓ Aggiunto al catalogo':'+ Aggiungi al catalogo'}
-                </button>
+                {isOpen && (
+                  <DietPanel value={ed} onChange={function(v){setOffEdit(function(prev){var n=Object.assign({},prev);n[p.code]=v;return n;});}}/>
+                )}
+                <div style={{display:'flex',gap:6,marginTop:8}}>
+                  {!added && (
+                    <button className="btn btn-s btn-sm" style={{flexShrink:0}} onClick={function(){setOffOpen(isOpen?null:p.code);}}>
+                      {isOpen?'▲':'⚙️'}
+                    </button>
+                  )}
+                  <button className={'btn btn-full btn-sm '+(added?'btn-s':'btn-p')}
+                    onClick={function(){if(!added)addFromOFF(p);}}
+                    disabled={added}>
+                    {added?'✓ Aggiunto al catalogo':'+ Aggiungi al catalogo'}
+                  </button>
+                </div>
               </div>
             );
           })}
