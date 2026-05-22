@@ -373,6 +373,18 @@ const FOODS = [
   {id:'birra',nome:'Birra',cat:'Alcolici',sub:'Birra',em:'🍺',tags:['chiara','scura','artigianale','IPA','rossa','senza glutine','weizen'],gluten:true,lactose:false,fodmap:'high',gi:'med'},
   {id:'liquori',nome:'Liquori / Distillati',cat:'Alcolici',sub:'Liquori',em:'🥃',tags:['amaro','grappa','whisky','rum','gin','vodka','tequila','limoncello','sambuca'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
   {id:'cocktail',nome:'Cocktail / Aperitivo',cat:'Alcolici',sub:'Cocktail',em:'🍹',tags:['aperol spritz','negroni','gin tonic','mojito','margarita','americano','hugo'],gluten:false,lactose:false,fodmap:'low',gi:'med'},
+  // COLAZIONE
+  {id:'fette_biscottate',nome:'Fette biscottate',cat:'Colazione',sub:'Pane e Fette',em:'🍞',tags:['classiche','integrali','multicereali'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
+  {id:'fette_biscottate_sg',nome:'Fette biscottate Schär (senza glutine)',cat:'Colazione',sub:'Pane e Fette',em:'🍞',tags:['senza glutine','classiche','integrali'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
+  {id:'miele',nome:'Miele',cat:'Colazione',sub:'Dolci spalmabili',em:'🍯',tags:['millefiori','acacia','castagno','arancio'],gluten:false,lactose:false,fodmap:'high',gi:'high'},
+  {id:'biscotti_frollini',nome:'Biscotti frollini',cat:'Colazione',sub:'Biscotti',em:'🍪',tags:['classici','al burro','integrali','al limone'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
+  {id:'biscotti_secchi',nome:'Biscotti secchi',cat:'Colazione',sub:'Biscotti',em:'🍘',tags:['digestive','maria','oro saiwa','integrali'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
+  {id:'ciambellone',nome:'Ciambellone',cat:'Colazione',sub:'Dolci da forno',em:'🎂',tags:['classico','al limone','al cioccolato','allo yogurt','integrale'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
+  {id:'crostata_col',nome:'Crostata',cat:'Colazione',sub:'Dolci da forno',em:'🥧',tags:['alla marmellata','alla crema','alla Nutella','di frutta'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
+  {id:'cornetto',nome:'Cornetto',cat:'Colazione',sub:'Pasticceria',em:'🥐',tags:['vuoto','alla marmellata','alla crema','integrale'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
+  {id:'cornetto_cioccolato',nome:'Cornetto cioccolato',cat:'Colazione',sub:'Pasticceria',em:'🥐',tags:['al cioccolato fondente','alla crema di cacao'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
+  {id:'nutella',nome:'Nutella',cat:'Colazione',sub:'Dolci spalmabili',em:'🫙',tags:['vaschetta monoporzione','vasetto'],gluten:false,lactose:false,fodmap:'med',gi:'high'},
+  {id:'marmellata',nome:'Marmellata / Confettura',cat:'Colazione',sub:'Dolci spalmabili',em:'🍓',tags:['vaschetta monoporzione','fragola','albicocca','frutti di bosco','arancia','ciliegia'],gluten:false,lactose:false,fodmap:'high',gi:'high'},
   // CONDIMENTI
   {id:'olio',nome:'Olio',cat:'Condimenti',sub:'Grassi',em:'🫒',tags:['extravergine d\'oliva','di semi','di cocco'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
   {id:'burro',nome:'Burro',cat:'Condimenti',sub:'Grassi',em:'🧈',tags:['salato','non salato','chiarificato'],gluten:false,lactose:true,fodmap:'low',gi:'low'},
@@ -383,6 +395,7 @@ const CATS = [...new Set(FOODS.map(f => f.cat))];
 
 const CAT_ICONS = {
   'Cereali e Derivati': '🌾',
+  'Colazione':          '☀️',
   'Carni Rosse':        '🥩',
   'Carni Bianche':      '🍗',
   'Pesce':              '🐟',
