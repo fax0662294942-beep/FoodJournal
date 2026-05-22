@@ -1,563 +1,428 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FoodJournal</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json"/>
-  <meta name="theme-color" content="#1a1a17"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <link rel="apple-touch-icon" href="icon-192.png"/>
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-
-  <!-- React & Babel -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    :root {
-      --bg: #1a1a17;
-      --surface: #242420;
-      --surface2: #2e2e29;
-      --border: #38382f;
-      --accent: #e8a84c;
-      --accent-dim: rgba(232,168,76,0.12);
-      --accent-border: rgba(232,168,76,0.35);
-      --green: #7ab87a;
-      --green-dim: rgba(122,184,122,0.12);
-      --red: #e87a7a;
-      --text: #f0ede4;
-      --text2: #a8a49a;
-      --text3: #5e5a52;
-      --r: 14px;
-      --r-sm: 8px;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;}
-    html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;-webkit-tap-highlight-color:transparent;}
-    #root{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;}
-    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-
-    /* HEADER */
-    .hdr{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
-    .hdr-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--accent);letter-spacing:-.3px;}
-    .hdr-sub{font-size:11px;color:var(--text3);margin-top:1px;}
-    .avatar{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:2px solid var(--accent);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;}
-    .avatar img{width:100%;height:100%;object-fit:cover;}
-
-    /* CONTENT */
-    .content{flex:1;overflow-y:auto;padding:14px 14px 0;}
-
-    /* TAB BAR */
-    .tabs{display:flex;background:var(--surface);border-top:1px solid var(--border);padding:6px 0 10px;flex-shrink:0;}
-    .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;cursor:pointer;border:none;background:none;color:var(--text3);transition:color .15s;}
-    .tab.on{color:var(--accent);}
-    .tab-ic{font-size:20px;line-height:1;}
-    .tab-lb{font-size:10px;font-weight:500;letter-spacing:.3px;}
-
-    /* CARDS */
-    .card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:15px;margin-bottom:12px;}
-    .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--accent);margin-bottom:12px;}
-
-    /* INPUTS */
-    .ig{margin-bottom:13px;}
-    .lbl{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.9px;margin-bottom:5px;display:block;}
-    .inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;}
-    .inp:focus{border-color:var(--accent);}
-    .inp::placeholder{color:var(--text3);}
-    select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235e5a52' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
-    textarea.inp{resize:none;height:66px;}
-
-    /* BUTTONS */
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:var(--r-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s;}
-    .btn:disabled{opacity:.5;cursor:default;}
-    .btn-p{background:var(--accent);color:#1a1a17;}
-    .btn-p:hover:not(:disabled){filter:brightness(1.08);}
-    .btn-s{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
-    .btn-full{width:100%;}
-    .btn-sm{padding:6px 11px;font-size:12px;}
-    .ico-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:17px;padding:4px;transition:color .15s;line-height:1;}
-    .ico-btn:hover{color:var(--text);}
-
-    /* MEAL TYPE */
-    .mt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
-    .mt-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 4px;cursor:pointer;text-align:center;transition:all .15s;}
-    .mt-btn.on{background:var(--accent-dim);border-color:var(--accent);}
-    .mt-ic{font-size:20px;display:block;margin-bottom:3px;}
-    .mt-lb{font-size:11px;color:var(--text2);}
-    .mt-btn.on .mt-lb{color:var(--accent);}
-
-    /* FOOD SEARCH */
-    .fs-wrap{position:relative;}
-    .fs-dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);max-height:210px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);}
-    .fs-item{padding:9px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .1s;}
-    .fs-item:hover{background:var(--surface);}
-    .fs-cat{font-size:11px;color:var(--text3);}
-
-    /* TAGS */
-    .tag-wrap{display:flex;flex-wrap:wrap;gap:5px;}
-    .tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
-    .tag.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-
-    /* SELECTED FOODS */
-    .sf-list{display:flex;flex-direction:column;gap:7px;margin-bottom:11px;}
-    .sf-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border);}
-    .sf-em{font-size:20px;flex-shrink:0;margin-top:1px;}
-    .sf-info{flex:1;min-width:0;}
-    .sf-name{font-size:13px;font-weight:500;margin-bottom:4px;}
-
-    /* DIARY */
-    .dy-day-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px;margin-top:2px;}
-    .dy-day-lbl{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;}
-    .dy-dot{flex:1;height:1px;background:var(--border);}
-    .dy-meal{background:var(--surface);border-radius:var(--r-sm);border:1px solid var(--border);padding:11px;margin-bottom:7px;}
-    .dy-meal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
-    .dy-mt{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}
-    .dy-chips{display:flex;flex-wrap:wrap;gap:5px;}
-    .dy-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--surface2);border-radius:20px;font-size:12px;color:var(--text2);border:1px solid var(--border);}
-    .dy-note{margin-top:7px;font-size:11px;color:var(--text3);font-style:italic;padding-left:2px;}
-
-    /* PILLS */
-    .pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;}
-    .pill{padding:5px 11px;border-radius:20px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
-    .pill.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-
-    /* STATS */
-    .stat-card{background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:var(--r);padding:16px;margin-bottom:12px;}
-    .stat-qlbl{font-size:12px;color:var(--text2);margin-bottom:6px;}
-    .stat-num{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--accent);line-height:1;}
-    .stat-unit{font-size:13px;color:var(--text2);margin-top:3px;}
-    .stat-date{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1.3;}
-    .stat-meta{font-size:12px;color:var(--text3);margin-top:5px;}
-
-    /* MONTH GRID */
-    .mo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px;}
-    .mo-btn{padding:8px 4px;border-radius:var(--r-sm);font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;text-align:center;transition:all .15s;}
-    .mo-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-
-    /* TOP FOODS */
-    .tf-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
-    .tf-row:last-child{border-bottom:none;}
-    .tf-rank{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--text3);width:22px;text-align:center;flex-shrink:0;}
-    .tf-track{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
-    .tf-fill{height:100%;background:var(--accent);border-radius:3px;}
-    .tf-cnt{font-size:12px;color:var(--text2);min-width:28px;text-align:right;flex-shrink:0;}
-    .tf-name{font-size:12px;min-width:80px;flex-shrink:0;}
-
-    /* CATALOG */
-    .cat-hdr{display:flex;align-items:center;gap:7px;padding:10px 2px;cursor:pointer;border-bottom:1px solid var(--border);}
-    .cat-hdr-name{font-size:13px;font-weight:500;flex:1;}
-    .cat-hdr-cnt{font-size:11px;color:var(--text3);}
-    .cat-items{padding:6px 0;display:flex;flex-direction:column;gap:2px;}
-    .cat-food{display:flex;align-items:center;gap:9px;padding:7px 3px;}
-    .cat-food-em{font-size:17px;}
-    .cat-food-name{font-size:13px;flex:1;}
-    .cat-food-sub{font-size:10px;color:var(--text3);margin-top:1px;}
-
-    /* BADGE */
-    .badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
-    .badge-g{background:var(--green-dim);color:var(--green);border:1px solid rgba(122,184,122,.3);}
-
-    /* LOGIN */
-    .login{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:28px;text-align:center;background:var(--bg);}
-    .login-logo{font-size:52px;margin-bottom:10px;line-height:1;}
-    .login-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;margin-bottom:7px;}
-    .login-sub{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:38px;max-width:280px;}
-    .login-btn{display:flex;align-items:center;gap:11px;padding:13px 26px;background:#fff;color:#333;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:transform .15s,box-shadow .15s;}
-    .login-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3);}
-
-    /* TOAST */
-    .toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 18px;font-size:13px;white-space:nowrap;z-index:999;animation:tin .2s ease;}
-    @keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-    /* MISC */
-    .spin-wrap{display:flex;align-items:center;justify-content:center;padding:32px;}
-
-    /* CATEGORY BROWSER */
-    .cb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
-    .cb-cat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 6px 9px;cursor:pointer;text-align:center;transition:all .15s;position:relative;}
-    .cb-cat:hover{border-color:var(--accent);background:var(--accent-dim);}
-    .cb-cat.on{background:var(--accent-dim);border-color:var(--accent);}
-    .cb-cat-em{font-size:24px;display:block;margin-bottom:4px;}
-    .cb-cat-name{font-size:10px;font-weight:600;color:var(--text2);line-height:1.3;}
-    .cb-cat.on .cb-cat-name{color:var(--accent);}
-    .cb-breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 11px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border);}
-    .cb-back{background:none;border:none;color:var(--accent);cursor:pointer;font-size:18px;padding:0;line-height:1;}
-    .cb-path{font-size:12px;color:var(--text2);}
-    .cb-path strong{color:var(--text);}
-    .cb-subs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
-    .cb-sub{padding:5px 12px;border-radius:20px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
-    .cb-sub.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-    .cb-foods{display:flex;flex-direction:column;gap:5px;}
-    .cb-food{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface2);border-radius:var(--r-sm);border:1px solid var(--border);cursor:pointer;transition:all .15s;}
-    .cb-food:hover{border-color:var(--accent);}
-    .cb-food.added{border-color:var(--green);background:var(--green-dim);}
-    .cb-food-em{font-size:19px;flex-shrink:0;}
-    .cb-food-name{font-size:13px;font-weight:500;flex:1;}
-    .cb-food-sub{font-size:10px;color:var(--text3);margin-top:1px;}
-    .cb-food-check{font-size:14px;flex-shrink:0;color:var(--green);}
-    .search-mode-toggle{display:flex;gap:6px;margin-bottom:10px;}
-    .smt-btn{flex:1;padding:7px;border-radius:var(--r-sm);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .15s;font-family:'DM Sans',sans-serif;}
-    .smt-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-    .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;}
-    @keyframes sp{to{transform:rotate(360deg)}}
-    .empty{text-align:center;padding:36px 16px;color:var(--text3);}
-    .empty-ic{font-size:36px;margin-bottom:10px;}
-    .empty-tx{font-size:13px;line-height:1.55;}
-    .loading-full{display:flex;align-items:center;justify-content:center;height:100dvh;}
-    .divider{height:1px;background:var(--border);margin:11px 0;}
-    .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-
-    /* FOOD DETAIL PANEL (tag + dietary inline) */
-    .fdp{background:var(--bg);border:1px solid var(--accent-border);border-radius:var(--r-sm);padding:11px;margin-top:5px;margin-bottom:2px;}
-    .fdp-section{margin-bottom:9px;}
-    .fdp-section:last-child{margin-bottom:0;}
-    .fdp-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
-    .fdp-tags{display:flex;flex-wrap:wrap;gap:5px;}
-    .fdp-tag{padding:4px 10px;border-radius:20px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s;}
-    .fdp-tag.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600;}
-    .fdp-diet{display:flex;gap:7px;}
-    .fdp-dtog{flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;}
-    .fdp-dtog.on{background:var(--green-dim);border-color:var(--green);}
-    .fdp-dtog-ic{font-size:16px;flex-shrink:0;}
-    .fdp-dtog-info{flex:1;min-width:0;}
-    .fdp-dtog-name{font-size:11px;font-weight:600;color:var(--text2);}
-    .fdp-dtog.on .fdp-dtog-name{color:var(--green);}
-    .fdp-dtog-val{font-size:10px;color:var(--text3);margin-top:1px;}
-    .fdp-dtog.on .fdp-dtog-val{color:var(--green);}
-
-    /* FODMAP BADGE */
-    .fod-low{background:rgba(122,184,122,.15);color:#7ab87a;border:1px solid rgba(122,184,122,.3);}
-    .fod-med{background:rgba(232,168,76,.12);color:#e8a84c;border:1px solid rgba(232,168,76,.3);}
-    .fod-high{background:rgba(232,122,122,.12);color:#e87a7a;border:1px solid rgba(232,122,122,.3);}
-    .fod-badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-
-    /* DIET STATS */
-    .ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
-    .ds-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;}
-    .ds-ic{font-size:22px;margin-bottom:5px;}
-    .ds-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;line-height:1;}
-    .ds-lbl{font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3;}
-    .fodmap-bar{display:flex;border-radius:6px;overflow:hidden;height:10px;margin:8px 0 4px;}
-    .fodmap-seg{transition:width .3s;}
-    .fodmap-legend{display:flex;gap:10px;flex-wrap:wrap;}
-    .fodmap-leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);}
-    .fodmap-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-
-    /* TIPO GRID (statistiche per tipologia) */
-    .tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:4px;}
-    .tipo-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 10px;cursor:pointer;transition:all .15s;}
-    .tipo-card:hover{border-color:var(--accent);}
-    .tipo-card.on{background:var(--accent-dim);border-color:var(--accent);}
-    .tipo-card-ic{font-size:20px;margin-bottom:4px;}
-    .tipo-card-name{font-size:11px;font-weight:600;color:var(--text2);line-height:1.3;}
-    .tipo-card.on .tipo-card-name{color:var(--accent);}
-    .tipo-card-badge{display:inline-block;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:700;margin-top:3px;}
-    .stat-days{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:var(--accent);line-height:1;}
-    .stat-days-unit{font-size:13px;color:var(--text2);margin-top:3px;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FoodJournal</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1a1a17"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root{--bg:#1a1a17;--sf:#242420;--sf2:#2e2e29;--bd:#38382f;--ac:#e8a84c;--acd:rgba(232,168,76,.12);--acb:rgba(232,168,76,.35);--gn:#7ab87a;--gnd:rgba(122,184,122,.12);--rd:#e87a7a;--tx:#f0ede4;--tx2:#a8a49a;--tx3:#5e5a52;--r:14px;--rs:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:15px;-webkit-tap-highlight-color:transparent;}
+#root{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+.hdr{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sf);}
+.hdr-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--ac);}
+.hdr-sub{font-size:11px;color:var(--tx3);margin-top:1px;}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--sf2);border:2px solid var(--ac);overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--ac);flex-shrink:0;}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.content{flex:1;overflow-y:auto;padding:14px 14px 0;}
+.tabs{display:flex;background:var(--sf);border-top:1px solid var(--bd);padding:6px 0 10px;flex-shrink:0;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;cursor:pointer;border:none;background:none;color:var(--tx3);transition:color .15s;}
+.tab.on{color:var(--ac);}
+.tab-ic{font-size:20px;line-height:1;}
+.tab-lb{font-size:10px;font-weight:500;letter-spacing:.3px;}
+.card{background:var(--sf);border-radius:var(--r);border:1px solid var(--bd);padding:15px;margin-bottom:12px;}
+.card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--ac);margin-bottom:12px;}
+.ig{margin-bottom:13px;}
+.lbl{font-size:10px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.9px;margin-bottom:5px;display:block;}
+.inp{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:10px 13px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s;}
+.inp:focus{border-color:var(--ac);}
+.inp::placeholder{color:var(--tx3);}
+textarea.inp{resize:none;height:66px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s;}
+.btn:disabled{opacity:.5;cursor:default;}
+.btn-p{background:var(--ac);color:#1a1a17;}
+.btn-s{background:var(--sf2);color:var(--tx2);border:1px solid var(--bd);}
+.btn-full{width:100%;}
+.btn-sm{padding:6px 11px;font-size:12px;}
+.ico-btn{background:none;border:none;cursor:pointer;color:var(--tx3);font-size:17px;padding:4px;transition:color .15s;line-height:1;}
+.mt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.mt-btn{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:9px 4px;cursor:pointer;text-align:center;transition:all .15s;}
+.mt-btn.on{background:var(--acd);border-color:var(--ac);}
+.mt-ic{font-size:20px;display:block;margin-bottom:3px;}
+.mt-lb{font-size:11px;color:var(--tx2);}
+.mt-btn.on .mt-lb{color:var(--ac);}
+.fs-wrap{position:relative;}
+.fs-dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);max-height:210px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.fs-item{padding:9px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .1s;}
+.fs-item:hover{background:var(--sf);}
+.fs-cat{font-size:11px;color:var(--tx3);}
+.tag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.tag.on{background:var(--acd);border-color:var(--ac);color:var(--ac);}
+.sf-list{display:flex;flex-direction:column;gap:7px;margin-bottom:11px;}
+.sf-item{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;background:var(--sf2);border-radius:var(--rs);border:1px solid var(--bd);}
+.sf-em{font-size:20px;flex-shrink:0;margin-top:1px;}
+.sf-info{flex:1;min-width:0;}
+.sf-name{font-size:13px;font-weight:500;margin-bottom:4px;}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:5px;}
+.dy-day-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px;margin-top:2px;}
+.dy-day-lbl{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;}
+.dy-dot{flex:1;height:1px;background:var(--bd);}
+.dy-meal{background:var(--sf);border-radius:var(--rs);border:1px solid var(--bd);padding:11px;margin-bottom:7px;}
+.dy-meal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.dy-mt{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ac);text-transform:uppercase;letter-spacing:.5px;}
+.dy-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.dy-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--sf2);border-radius:20px;font-size:12px;color:var(--tx2);border:1px solid var(--bd);}
+.dy-note{margin-top:7px;font-size:11px;color:var(--tx3);font-style:italic;}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;}
+.pill{padding:5px 11px;border-radius:20px;font-size:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.pill.on{background:var(--acd);border-color:var(--ac);color:var(--ac);}
+.stat-card{background:var(--acd);border:1px solid var(--acb);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.stat-qlbl{font-size:12px;color:var(--tx2);margin-bottom:6px;}
+.stat-num{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--ac);line-height:1;}
+.stat-unit{font-size:13px;color:var(--tx2);margin-top:3px;}
+.stat-date{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:var(--tx);}
+.stat-meta{font-size:12px;color:var(--tx3);margin-top:5px;}
+.mo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px;}
+.mo-btn{padding:8px 4px;border-radius:var(--rs);font-size:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;text-align:center;transition:all .15s;}
+.mo-btn.on{background:var(--acd);border-color:var(--ac);color:var(--ac);}
+.tf-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd);}
+.tf-row:last-child{border-bottom:none;}
+.tf-rank{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--tx3);width:22px;text-align:center;flex-shrink:0;}
+.tf-track{flex:1;height:5px;background:var(--sf2);border-radius:3px;overflow:hidden;}
+.tf-fill{height:100%;background:var(--ac);border-radius:3px;}
+.tf-cnt{font-size:12px;color:var(--tx2);min-width:28px;text-align:right;flex-shrink:0;}
+.tf-name{font-size:12px;min-width:80px;flex-shrink:0;}
+.cat-hdr{display:flex;align-items:center;gap:7px;padding:10px 2px;cursor:pointer;border-bottom:1px solid var(--bd);}
+.cat-hdr-name{font-size:13px;font-weight:500;flex:1;}
+.cat-hdr-cnt{font-size:11px;color:var(--tx3);}
+.cat-items{padding:6px 0;display:flex;flex-direction:column;gap:2px;}
+.cat-food{display:flex;align-items:center;gap:9px;padding:7px 3px;}
+.cat-food-em{font-size:17px;}
+.cat-food-name{font-size:13px;flex:1;}
+.cat-food-sub{font-size:10px;color:var(--tx3);margin-top:1px;}
+.badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.badge-g{background:var(--gnd);color:var(--gn);border:1px solid rgba(122,184,122,.3);}
+.login{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:28px;text-align:center;}
+.login-logo{font-size:52px;margin-bottom:10px;}
+.login-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;margin-bottom:7px;}
+.login-sub{font-size:14px;color:var(--tx2);line-height:1.65;margin-bottom:38px;max-width:280px;}
+.login-btn{display:flex;align-items:center;gap:11px;padding:13px 26px;background:#fff;color:#333;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;}
+.toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:9px 18px;font-size:13px;z-index:999;}
+.spin-wrap{display:flex;align-items:center;justify-content:center;padding:32px;}
+.spinner{width:28px;height:28px;border:2px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:36px 16px;color:var(--tx3);}
+.empty-ic{font-size:36px;margin-bottom:10px;}
+.empty-tx{font-size:13px;line-height:1.55;}
+.loading-full{display:flex;align-items:center;justify-content:center;height:100dvh;}
+.divider{height:1px;background:var(--bd);margin:11px 0;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.smt-btn{flex:1;padding:7px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--bd);background:var(--sf2);color:var(--tx2);transition:all .15s;font-family:'DM Sans',sans-serif;}
+.smt-btn.on{background:var(--acd);border-color:var(--ac);color:var(--ac);}
+.smtog{display:flex;gap:6px;margin-bottom:10px;}
+.cb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
+.cb-cat{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:11px 6px 9px;cursor:pointer;text-align:center;transition:all .15s;}
+.cb-cat:hover{background:var(--acd);border-color:var(--ac);}
+.cb-cat-em{font-size:24px;display:block;margin-bottom:4px;}
+.cb-cat-name{font-size:10px;font-weight:600;color:var(--tx2);line-height:1.3;}
+.cb-bc{display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:8px 11px;background:var(--sf2);border-radius:var(--rs);border:1px solid var(--bd);}
+.cb-back{background:none;border:none;color:var(--ac);cursor:pointer;font-size:18px;padding:0;line-height:1;}
+.cb-path{font-size:12px;color:var(--tx2);}
+.cb-subs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;}
+.cb-sub{padding:5px 12px;border-radius:20px;font-size:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.cb-sub.on{background:var(--acd);border-color:var(--ac);color:var(--ac);}
+.cb-foods{display:flex;flex-direction:column;gap:5px;}
+.cb-food{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--sf2);border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;transition:all .15s;}
+.cb-food:hover{border-color:var(--ac);}
+.cb-food.added{background:var(--acd);border-color:var(--ac);}
+.fdp{background:var(--bg);border:1px solid var(--acb);border-radius:var(--rs);padding:11px;margin-top:5px;margin-bottom:2px;}
+.fdp-lbl{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.fdp-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
+.fdp-tag{padding:4px 10px;border-radius:20px;font-size:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.fdp-tag.on{background:var(--acd);border-color:var(--ac);color:var(--ac);font-weight:600;}
+.fdp-diet{display:flex;gap:7px;margin-bottom:9px;}
+.fdp-dtog{flex:1;display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf2);cursor:pointer;transition:all .15s;}
+.fdp-dtog.on{background:var(--gnd);border-color:var(--gn);}
+.fdp-dtog-ic{font-size:16px;flex-shrink:0;}
+.fdp-dtog-name{font-size:11px;font-weight:600;color:var(--tx2);}
+.fdp-dtog.on .fdp-dtog-name{color:var(--gn);}
+.fb-low{background:rgba(122,184,122,.15);color:#7ab87a;border:1px solid rgba(122,184,122,.3);}
+.fb-med{background:rgba(232,168,76,.12);color:#e8a84c;border:1px solid rgba(232,168,76,.3);}
+.fb-high{background:rgba(232,122,122,.12);color:#e87a7a;border:1px solid rgba(232,122,122,.3);}
+.fbadge{display:inline-block;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.ds-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.ds-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:13px;}
+.ds-ic{font-size:22px;margin-bottom:5px;}
+.ds-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;line-height:1;}
+.ds-lbl{font-size:10px;color:var(--tx2);margin-top:3px;line-height:1.3;}
+.fbar{display:flex;border-radius:6px;overflow:hidden;height:10px;margin:8px 0 4px;}
+.fseg{transition:width .3s;}
+.fleg{display:flex;gap:10px;flex-wrap:wrap;}
+.fleg-i{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--tx2);}
+.fleg-d{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px;}
+.tipo-card{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:11px 10px;cursor:pointer;transition:all .15s;}
+.tipo-card:hover,.tipo-card.on{background:var(--acd);border-color:var(--ac);}
+.tipo-card-ic{font-size:20px;margin-bottom:4px;}
+.tipo-card-name{font-size:11px;font-weight:600;color:var(--tx2);line-height:1.3;}
+.tipo-card.on .tipo-card-name{color:var(--ac);}
+</style>
 </head>
 <body>
 <div id="root"></div>
-
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDue3aMzi-8-zflMvlgdGp1TzzId1CZNaI",
-    authDomain: "viaggi-camper.firebaseapp.com",
-    projectId: "viaggi-camper",
-    storageBucket: "viaggi-camper.firebasestorage.app",
-    messagingSenderId: "172431561795",
-    appId: "1:172431561795:web:ae6ef3e9c2bbdfeb2d70f6"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db   = firebase.firestore();
+var firebaseConfig = {
+  apiKey: "AIzaSyDue3aMzi-8-zflMvlgdGp1TzzId1CZNaI",
+  authDomain: "viaggi-camper.firebaseapp.com",
+  projectId: "viaggi-camper",
+  storageBucket: "viaggi-camper.firebasestorage.app",
+  messagingSenderId: "172431561795",
+  appId: "1:172431561795:web:ae6ef3e9c2bbdfeb2d70f6"
+};
+firebase.initializeApp(firebaseConfig);
+var auth = firebase.auth();
+var db = firebase.firestore();
 </script>
-
 <script type="text/babel">
-const { useState, useEffect, useRef, useMemo } = React;
+var useState = React.useState;
+var useEffect = React.useEffect;
+var useRef = React.useRef;
+var useMemo = React.useMemo;
 
-/* ============================================================
-   CATALOGO PREDEFINITO
-============================================================ */
-const FOODS = [
-  // CEREALI E DERIVATI
-  {id:'pasta',nome:'Pasta',cat:'Cereali e Derivati',sub:'Pasta',em:'🍝',tags:['corta','lunga','ripiena','integrale','fresca','al forno'],gluten:true,lactose:false,fodmap:'high',gi:'med'},
-  {id:'riso',nome:'Riso',cat:'Cereali e Derivati',sub:'Riso',em:'🍚',tags:['bianco','integrale','basmati','risotto'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
-  {id:'pane',nome:'Pane',cat:'Cereali e Derivati',sub:'Pane',em:'🍞',tags:['bianco','integrale','di segale','tostato','focaccia','grissini'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
-  {id:'pizza',nome:'Pizza',cat:'Cereali e Derivati',sub:'Pizza',em:'🍕',tags:['margherita','marinara','con verdure','con carne','bianca'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'gnocchi',nome:'Gnocchi',cat:'Cereali e Derivati',sub:'Gnocchi',em:'🥟',tags:['di patate','di ricotta'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
-  {id:'polenta',nome:'Polenta',cat:'Cereali e Derivati',sub:'Polenta',em:'🫓',tags:['morbida','grigliata','fritta'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
-  {id:'couscous',nome:'Couscous',cat:'Cereali e Derivati',sub:'Couscous',em:'🫙',tags:[],gluten:true,lactose:false,fodmap:'high',gi:'med'},
-  {id:'cereali_col',nome:'Cereali da colazione',cat:'Cereali e Derivati',sub:'Cereali colazione',em:'🥣',tags:['muesli','fiocchi d\'avena','granola','cornflakes'],gluten:true,lactose:false,fodmap:'med',gi:'med'},
-  {id:'crackers',nome:'Crackers / Grissini',cat:'Cereali e Derivati',sub:'Crackers',em:'🍘',tags:['integrali','classici','senza glutine'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
-  // CARNI ROSSE
-  {id:'manzo',nome:'Manzo',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['bistecca','hamburger','arrosto','bollito','macinato','tagliata','carpaccio'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'maiale',nome:'Maiale',cat:'Carni Rosse',sub:'Suino',em:'🥩',tags:['costine','lonza','pancetta','salsiccia','braciola','porchetta'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'agnello',nome:'Agnello',cat:'Carni Rosse',sub:'Ovino',em:'🍖',tags:['costolette','spezzatino','scottadito','arrosticini'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'vitello',nome:'Vitello',cat:'Carni Rosse',sub:'Bovino',em:'🥩',tags:['scaloppine','ossobuco','cotoletta','spezzatino'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'selvaggina',nome:'Selvaggina',cat:'Carni Rosse',sub:'Selvaggina',em:'🦌',tags:['cinghiale','cervo','capriolo','lepre','fagiano'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  // CARNI BIANCHE
-  {id:'pollo',nome:'Pollo',cat:'Carni Bianche',sub:'Pollo',em:'🍗',tags:['petto','cosce','arrosto','fritto','alla griglia','in umido'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'tacchino',nome:'Tacchino',cat:'Carni Bianche',sub:'Tacchino',em:'🦃',tags:['petto','fettine','macinato','arrosto'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'coniglio',nome:'Coniglio',cat:'Carni Bianche',sub:'Coniglio',em:'🐇',tags:['al forno','in umido','alla cacciatora','alla ligure'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'anatra',nome:'Anatra / Oca',cat:'Carni Bianche',sub:'Pollame',em:'🦆',tags:['anatra','oca','al forno','all\'arancia'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  // PESCE
-  {id:'salmone',nome:'Salmone',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','affumicato','alla griglia','al vapore','in crosta'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'tonno',nome:'Tonno',cat:'Pesce',sub:'Pesce',em:'🐠',tags:['fresco','in scatola','alla griglia'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'merluzzo',nome:'Merluzzo / Baccalà',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['fresco','baccalà','fritto','al vapore'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'branzino',nome:'Branzino / Spigola',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','al sale','alla griglia'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'orata',nome:'Orata',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['al forno','alla griglia'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'gamberetti',nome:'Gamberetti / Gamberi',cat:'Pesce',sub:'Frutti di mare',em:'🦐',tags:['gamberi','gamberoni','saltati','in insalata'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'cozze',nome:'Cozze / Vongole',cat:'Pesce',sub:'Frutti di mare',em:'🦪',tags:['cozze','vongole','alla marinara','gratinate'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'calamari',nome:'Calamari / Seppie',cat:'Pesce',sub:'Frutti di mare',em:'🦑',tags:['fritti','in umido','alla griglia'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'sardine',nome:'Sardine / Acciughe',cat:'Pesce',sub:'Pesce',em:'🐟',tags:['in scatola','fresche','marinate','sott\'olio'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  // SALUMI
-  {id:'prosciutto_cotto',nome:'Prosciutto cotto',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['alta qualità','di Praga'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'prosciutto_crudo',nome:'Prosciutto crudo',cat:'Salumi',sub:'Salumi',em:'🥩',tags:['San Daniele','di Parma','di Norcia'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'salame',nome:'Salame',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['Milano','piccante','di Felino','ungherese'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'mortadella',nome:'Mortadella',cat:'Salumi',sub:'Salumi',em:'🌭',tags:['classica','con pistacchi'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'bresaola',nome:'Bresaola',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'speck',nome:'Speck',cat:'Salumi',sub:'Salumi',em:'🥩',tags:[],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  // UOVA
-  {id:'uova',nome:'Uova',cat:'Uova',sub:'Uova',em:'🥚',tags:['fritte','strapazzate','bollite','in camicia','omelette','al tegame','sode'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  // LATTICINI
-  {id:'latte',nome:'Latte',cat:'Latticini',sub:'Latte',em:'🥛',tags:['intero','parzialmente scremato','vegetale','di soia','di avena'],gluten:false,lactose:true,fodmap:'high',gi:'low'},
-  {id:'yogurt',nome:'Yogurt',cat:'Latticini',sub:'Yogurt',em:'🫙',tags:['bianco','alla frutta','greco','kefir'],gluten:false,lactose:true,fodmap:'high',gi:'low'},
-  {id:'mozzarella',nome:'Mozzarella',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['fiordilatte','di bufala','affumicata'],gluten:false,lactose:true,fodmap:'med',gi:'low'},
-  {id:'parmigiano',nome:'Parmigiano / Grana',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['parmigiano','grana padano','grattugiato'],gluten:false,lactose:true,fodmap:'low',gi:'low'},
-  {id:'ricotta',nome:'Ricotta',cat:'Latticini',sub:'Formaggi freschi',em:'🧀',tags:['di mucca','di pecora'],gluten:false,lactose:true,fodmap:'high',gi:'low'},
-  {id:'formaggio',nome:'Formaggio stagionato',cat:'Latticini',sub:'Formaggi stagionati',em:'🧀',tags:['pecorino','gorgonzola','brie','emmental','asiago','scamorza'],gluten:false,lactose:true,fodmap:'low',gi:'low'},
-  // LEGUMI
-  {id:'fagioli',nome:'Fagioli',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['borlotti','cannellini','neri','in scatola'],gluten:false,lactose:false,fodmap:'high',gi:'low'},
-  {id:'ceci',nome:'Ceci',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['in scatola','hummus','in padella'],gluten:false,lactose:false,fodmap:'high',gi:'low'},
-  {id:'lenticchie',nome:'Lenticchie',cat:'Legumi',sub:'Legumi',em:'🫘',tags:['rosse','verdi','beluga','in umido'],gluten:false,lactose:false,fodmap:'med',gi:'low'},
-  {id:'piselli',nome:'Piselli',cat:'Legumi',sub:'Legumi',em:'🫛',tags:['freschi','surgelati','in scatola'],gluten:false,lactose:false,fodmap:'med',gi:'low'},
-  // VERDURE
-  {id:'insalata',nome:'Insalata',cat:'Verdure',sub:'Insalata',em:'🥗',tags:['verde','mista','rucola','spinacino','iceberg','radicchio'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'pomodori',nome:'Pomodori',cat:'Verdure',sub:'Pomodori',em:'🍅',tags:['ciliegini','pachino','san marzano','pelati'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'zucchine',nome:'Zucchine',cat:'Verdure',sub:'Zucchine',em:'🥒',tags:['grigliate','trifolate','in umido','crude'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'carote',nome:'Carote',cat:'Verdure',sub:'Carote',em:'🥕',tags:['crude','cotte','grattugiate'],gluten:false,lactose:false,fodmap:'low',gi:'med'},
-  {id:'patate',nome:'Patate',cat:'Verdure',sub:'Patate',em:'🥔',tags:['al forno','bollite','fritte','purè','novelle'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
-  {id:'melanzane',nome:'Melanzane',cat:'Verdure',sub:'Melanzane',em:'🍆',tags:['grigliate','parmigiana','al forno','in agrodolce'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'peperoni',nome:'Peperoni',cat:'Verdure',sub:'Peperoni',em:'🫑',tags:['rossi','gialli','verdi','arrostiti','in padella'],gluten:false,lactose:false,fodmap:'med',gi:'low'},
-  {id:'spinaci',nome:'Spinaci',cat:'Verdure',sub:'Spinaci',em:'🥬',tags:['freschi','saltati','al vapore','surgelati'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'broccoli',nome:'Broccoli',cat:'Verdure',sub:'Broccoli',em:'🥦',tags:['al vapore','ripassati','al forno'],gluten:false,lactose:false,fodmap:'med',gi:'low'},
-  {id:'cipolla_aglio',nome:'Cipolla / Aglio',cat:'Verdure',sub:'Aromatici',em:'🧅',tags:['cipolla','aglio','porro','scalogno'],gluten:false,lactose:false,fodmap:'high',gi:'low'},
-  {id:'funghi',nome:'Funghi',cat:'Verdure',sub:'Funghi',em:'🍄',tags:['champignon','porcini','pleurotus','trifolati','secchi'],gluten:false,lactose:false,fodmap:'high',gi:'low'},
-  {id:'cavolo',nome:'Cavolfiore / Cavolo',cat:'Verdure',sub:'Cavoli',em:'🥦',tags:['cavolfiore','broccolo romanesco','cavolo cappuccio','verza','kale'],gluten:false,lactose:false,fodmap:'high',gi:'low'},
-  // FRUTTA
-  {id:'mela',nome:'Mela / Pera',cat:'Frutta',sub:'Frutta',em:'🍎',tags:['mela','pera','cotogna'],gluten:false,lactose:false,fodmap:'high',gi:'low'},
-  {id:'banana',nome:'Banana',cat:'Frutta',sub:'Frutta',em:'🍌',tags:[],gluten:false,lactose:false,fodmap:'med',gi:'med'},
-  {id:'agrumi',nome:'Agrumi',cat:'Frutta',sub:'Frutta',em:'🍊',tags:['arancia','mandarino','limone','pompelmo','clementina'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'pesca',nome:'Pesca / Albicocca',cat:'Frutta',sub:'Frutta',em:'🍑',tags:['pesca','albicocca','nettarina','susina'],gluten:false,lactose:false,fodmap:'high',gi:'med'},
-  {id:'fragole',nome:'Fragole',cat:'Frutta',sub:'Frutta',em:'🍓',tags:['fresche','con panna'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'uva',nome:'Uva',cat:'Frutta',sub:'Frutta',em:'🍇',tags:['bianca','rossa','nera'],gluten:false,lactose:false,fodmap:'low',gi:'med'},
-  {id:'kiwi',nome:'Kiwi',cat:'Frutta',sub:'Frutta',em:'🥝',tags:[],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'melone',nome:'Melone / Anguria',cat:'Frutta',sub:'Frutta',em:'🍉',tags:['melone','anguria','melone bianco'],gluten:false,lactose:false,fodmap:'high',gi:'high'},
-  {id:'frutta_secca',nome:'Frutta secca',cat:'Frutta',sub:'Frutta secca',em:'🥜',tags:['noci','mandorle','nocciole','pistacchi','anacardi','pinoli','datteri'],gluten:false,lactose:false,fodmap:'med',gi:'low'},
-  // DOLCI E SNACK
-  {id:'biscotti',nome:'Biscotti',cat:'Dolci e Snack',sub:'Biscotti',em:'🍪',tags:['secchi','al cioccolato','integrali','al burro','tipo oreo'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'torta',nome:'Torta / Crostata',cat:'Dolci e Snack',sub:'Torte',em:'🎂',tags:['crostata','di frutta','al cioccolato','cheesecake','tiramisù','creme caramel'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'cioccolato',nome:'Cioccolato',cat:'Dolci e Snack',sub:'Cioccolato',em:'🍫',tags:['fondente','al latte','bianco','con frutta secca'],gluten:false,lactose:true,fodmap:'med',gi:'med'},
-  {id:'gelato',nome:'Gelato',cat:'Dolci e Snack',sub:'Gelato',em:'🍦',tags:['alla frutta','al cioccolato','alla crema','sorbetto'],gluten:false,lactose:true,fodmap:'high',gi:'med'},
-  {id:'croissant',nome:'Croissant / Brioche',cat:'Dolci e Snack',sub:'Pasticceria',em:'🥐',tags:['vuoto','con marmellata','con crema','cornetto'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'snack',nome:'Snack / Patatine',cat:'Dolci e Snack',sub:'Snack',em:'🍿',tags:['patatine','chips','popcorn','merendina','barretta'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
-  // BEVANDE
-  {id:'caffe',nome:'Caffè',cat:'Bevande',sub:'Caffè',em:'☕',tags:['espresso','americano','cappuccino','macchiato','lungo','decaffeinato','marocchino'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'te',nome:'Tè / Infuso',cat:'Bevande',sub:'Tè',em:'🍵',tags:['verde','nero','bianco','camomilla','infuso','tisana'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'succo',nome:'Succo di frutta',cat:'Bevande',sub:'Succhi',em:'🧃',tags:['arancia','mela','pesca','misto','centrifugato','frullato'],gluten:false,lactose:false,fodmap:'med',gi:'med'},
-  {id:'bibite',nome:'Bibite',cat:'Bevande',sub:'Bibite',em:'🥤',tags:['cola','aranciata','limonata','gassata','energy drink','tonica'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
-  {id:'acqua',nome:'Acqua',cat:'Bevande',sub:'Acqua',em:'💧',tags:['naturale','frizzante'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  // ALCOLICI
-  {id:'vino',nome:'Vino',cat:'Alcolici',sub:'Vino',em:'🍷',tags:['rosso','bianco','rosé','bollicine','prosecco','champagne','passito'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'birra',nome:'Birra',cat:'Alcolici',sub:'Birra',em:'🍺',tags:['chiara','scura','artigianale','IPA','rossa','senza glutine','weizen'],gluten:true,lactose:false,fodmap:'high',gi:'med'},
-  {id:'liquori',nome:'Liquori / Distillati',cat:'Alcolici',sub:'Liquori',em:'🥃',tags:['amaro','grappa','whisky','rum','gin','vodka','tequila','limoncello','sambuca'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'cocktail',nome:'Cocktail / Aperitivo',cat:'Alcolici',sub:'Cocktail',em:'🍹',tags:['aperol spritz','negroni','gin tonic','mojito','margarita','americano','hugo'],gluten:false,lactose:false,fodmap:'low',gi:'med'},
-  // COLAZIONE
-  {id:'fette_biscottate',nome:'Fette biscottate',cat:'Colazione',sub:'Pane e Fette',em:'🍞',tags:['classiche','integrali','multicereali'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
-  {id:'fette_biscottate_sg',nome:'Fette biscottate Schär (senza glutine)',cat:'Colazione',sub:'Pane e Fette',em:'🍞',tags:['senza glutine','classiche','integrali'],gluten:false,lactose:false,fodmap:'low',gi:'high'},
-  {id:'miele',nome:'Miele',cat:'Colazione',sub:'Dolci spalmabili',em:'🍯',tags:['millefiori','acacia','castagno','arancio'],gluten:false,lactose:false,fodmap:'high',gi:'high'},
-  {id:'biscotti_frollini',nome:'Biscotti frollini',cat:'Colazione',sub:'Biscotti',em:'🍪',tags:['classici','al burro','integrali','al limone'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'biscotti_secchi',nome:'Biscotti secchi',cat:'Colazione',sub:'Biscotti',em:'🍘',tags:['digestive','maria','oro saiwa','integrali'],gluten:true,lactose:false,fodmap:'high',gi:'high'},
-  {id:'ciambellone',nome:'Ciambellone',cat:'Colazione',sub:'Dolci da forno',em:'🎂',tags:['classico','al limone','al cioccolato','allo yogurt','integrale'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'crostata_col',nome:'Crostata',cat:'Colazione',sub:'Dolci da forno',em:'🥧',tags:['alla marmellata','alla crema','alla Nutella','di frutta'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'cornetto',nome:'Cornetto',cat:'Colazione',sub:'Pasticceria',em:'🥐',tags:['vuoto','alla marmellata','alla crema','integrale'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'cornetto_cioccolato',nome:'Cornetto cioccolato',cat:'Colazione',sub:'Pasticceria',em:'🥐',tags:['al cioccolato fondente','alla crema di cacao'],gluten:true,lactose:true,fodmap:'high',gi:'high'},
-  {id:'nutella',nome:'Nutella',cat:'Colazione',sub:'Dolci spalmabili',em:'🫙',tags:['vaschetta monoporzione','vasetto'],gluten:false,lactose:false,fodmap:'med',gi:'high'},
-  {id:'marmellata',nome:'Marmellata / Confettura',cat:'Colazione',sub:'Dolci spalmabili',em:'🍓',tags:['vaschetta monoporzione','fragola','albicocca','frutti di bosco','arancia','ciliegia'],gluten:false,lactose:false,fodmap:'high',gi:'high'},
-  // CONDIMENTI
-  {id:'olio',nome:'Olio',cat:'Condimenti',sub:'Grassi',em:'🫒',tags:['extravergine d\'oliva','di semi','di cocco'],gluten:false,lactose:false,fodmap:'low',gi:'low'},
-  {id:'burro',nome:'Burro',cat:'Condimenti',sub:'Grassi',em:'🧈',tags:['salato','non salato','chiarificato'],gluten:false,lactose:true,fodmap:'low',gi:'low'},
-  {id:'salse',nome:'Salse',cat:'Condimenti',sub:'Salse',em:'🫙',tags:['ketchup','maionese','pesto','ragù','besciamella','salsa di pomodoro','tahini'],gluten:false,lactose:false,fodmap:'med',gi:'med'},
+var FOODS = [
+  {id:'fette_b',    nome:'Fette biscottate',            cat:'Colazione',    sub:'Pane',       em:'🍞', tags:['classiche','integrali','multicereali'],                  gluten:true,  lactose:false, fodmap:'high', gi:'high'},
+  {id:'fette_bsg',  nome:'Fette biscottate Schar SG',   cat:'Colazione',    sub:'Pane',       em:'🍞', tags:['senza glutine','classiche','integrali'],                 gluten:false, lactose:false, fodmap:'low',  gi:'high'},
+  {id:'miele',      nome:'Miele',                       cat:'Colazione',    sub:'Spalmabili', em:'🍯', tags:['millefiori','acacia','castagno'],                        gluten:false, lactose:false, fodmap:'high', gi:'high'},
+  {id:'frollini',   nome:'Biscotti frollini',            cat:'Colazione',    sub:'Biscotti',   em:'🍪', tags:['classici','al burro','integrali','al limone'],           gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'biscotti_s', nome:'Biscotti secchi',              cat:'Colazione',    sub:'Biscotti',   em:'🍘', tags:['digestive','maria','saiwa','integrali'],                 gluten:true,  lactose:false, fodmap:'high', gi:'high'},
+  {id:'ciambellone',nome:'Ciambellone',                  cat:'Colazione',    sub:'Dolci',      em:'🎂', tags:['classico','al limone','al cioccolato','allo yogurt'],    gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'crostata_c', nome:'Crostata',                     cat:'Colazione',    sub:'Dolci',      em:'🥧', tags:['alla marmellata','alla crema','alla Nutella'],           gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'cornetto',   nome:'Cornetto',                     cat:'Colazione',    sub:'Pasticceria',em:'🥐', tags:['vuoto','alla marmellata','alla crema','integrale'],      gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'cornetto_c', nome:'Cornetto cioccolato',          cat:'Colazione',    sub:'Pasticceria',em:'🥐', tags:['al cioccolato','alla crema di cacao'],                  gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'nutella',    nome:'Nutella',                      cat:'Colazione',    sub:'Spalmabili', em:'🫙', tags:['vaschetta monoporzione','vasetto'],                      gluten:false, lactose:false, fodmap:'med',  gi:'high'},
+  {id:'marmellata', nome:'Marmellata',                   cat:'Colazione',    sub:'Spalmabili', em:'🍓', tags:['monoporzione','fragola','albicocca','arancia'],          gluten:false, lactose:false, fodmap:'high', gi:'high'},
+  {id:'pasta',      nome:'Pasta',                        cat:'Cereali',      sub:'Pasta',      em:'🍝', tags:['corta','lunga','ripiena','integrale','fresca'],          gluten:true,  lactose:false, fodmap:'high', gi:'med'},
+  {id:'riso',       nome:'Riso',                         cat:'Cereali',      sub:'Riso',       em:'🍚', tags:['bianco','integrale','basmati','risotto'],                gluten:false, lactose:false, fodmap:'low',  gi:'high'},
+  {id:'pane',       nome:'Pane',                         cat:'Cereali',      sub:'Pane',       em:'🍞', tags:['bianco','integrale','di segale','focaccia','grissini'],  gluten:true,  lactose:false, fodmap:'high', gi:'high'},
+  {id:'pizza',      nome:'Pizza',                        cat:'Cereali',      sub:'Pizza',      em:'🍕', tags:['margherita','marinara','con verdure','bianca'],          gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'gnocchi',    nome:'Gnocchi',                      cat:'Cereali',      sub:'Gnocchi',    em:'🥟', tags:['di patate','di ricotta'],                                gluten:true,  lactose:false, fodmap:'high', gi:'high'},
+  {id:'polenta',    nome:'Polenta',                      cat:'Cereali',      sub:'Polenta',    em:'🫓', tags:['morbida','grigliata','fritta'],                          gluten:false, lactose:false, fodmap:'low',  gi:'high'},
+  {id:'couscous',   nome:'Couscous',                     cat:'Cereali',      sub:'Couscous',   em:'🫙', tags:[],                                                        gluten:true,  lactose:false, fodmap:'high', gi:'med'},
+  {id:'cereali_c',  nome:'Cereali colazione',            cat:'Cereali',      sub:'Cereali',    em:'🥣', tags:['muesli','fiocchi avena','granola','cornflakes'],         gluten:true,  lactose:false, fodmap:'med',  gi:'med'},
+  {id:'crackers',   nome:'Crackers / Grissini',          cat:'Cereali',      sub:'Crackers',   em:'🍘', tags:['integrali','classici','senza glutine'],                  gluten:true,  lactose:false, fodmap:'high', gi:'high'},
+  {id:'manzo',      nome:'Manzo',                        cat:'Carni Rosse',  sub:'Bovino',     em:'🥩', tags:['bistecca','hamburger','arrosto','bollito','macinato'],   gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'maiale',     nome:'Maiale',                       cat:'Carni Rosse',  sub:'Suino',      em:'🥩', tags:['costine','lonza','pancetta','salsiccia','braciola'],     gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'agnello',    nome:'Agnello',                      cat:'Carni Rosse',  sub:'Ovino',      em:'🍖', tags:['costolette','spezzatino','scottadito'],                  gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'vitello',    nome:'Vitello',                      cat:'Carni Rosse',  sub:'Bovino',     em:'🥩', tags:['scaloppine','ossobuco','cotoletta'],                     gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'selvaggina', nome:'Selvaggina',                   cat:'Carni Rosse',  sub:'Selvaggina', em:'🦌', tags:['cinghiale','cervo','capriolo','lepre'],                  gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'pollo',      nome:'Pollo',                        cat:'Carni Bianche',sub:'Pollo',      em:'🍗', tags:['petto','cosce','arrosto','fritto','alla griglia'],       gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'tacchino',   nome:'Tacchino',                     cat:'Carni Bianche',sub:'Tacchino',   em:'🦃', tags:['petto','fettine','macinato','arrosto'],                  gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'coniglio',   nome:'Coniglio',                     cat:'Carni Bianche',sub:'Coniglio',   em:'🐇', tags:['al forno','in umido','alla cacciatora'],                 gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'anatra',     nome:'Anatra / Oca',                 cat:'Carni Bianche',sub:'Pollame',    em:'🦆', tags:['anatra','oca','al forno'],                               gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'salmone',    nome:'Salmone',                      cat:'Pesce',        sub:'Pesce',      em:'🐟', tags:['fresco','affumicato','alla griglia','al vapore'],        gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'tonno',      nome:'Tonno',                        cat:'Pesce',        sub:'Pesce',      em:'🐠', tags:['fresco','in scatola','alla griglia'],                    gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'merluzzo',   nome:'Merluzzo',                     cat:'Pesce',        sub:'Pesce',      em:'🐟', tags:['fresco','fritto','al vapore'],                           gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'branzino',   nome:'Branzino / Spigola',           cat:'Pesce',        sub:'Pesce',      em:'🐟', tags:['al forno','al sale','alla griglia'],                     gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'orata',      nome:'Orata',                        cat:'Pesce',        sub:'Pesce',      em:'🐟', tags:['al forno','alla griglia'],                               gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'gamberetti', nome:'Gamberetti / Gamberi',         cat:'Pesce',        sub:'Frutti mare',em:'🦐', tags:['gamberi','gamberoni','saltati'],                         gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'cozze',      nome:'Cozze / Vongole',              cat:'Pesce',        sub:'Frutti mare',em:'🦪', tags:['cozze','vongole','alla marinara'],                       gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'calamari',   nome:'Calamari / Seppie',            cat:'Pesce',        sub:'Frutti mare',em:'🦑', tags:['fritti','in umido','alla griglia'],                      gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'sardine',    nome:'Sardine / Acciughe',           cat:'Pesce',        sub:'Pesce',      em:'🐟', tags:['in scatola','fresche','marinate'],                       gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'pr_cotto',   nome:'Prosciutto cotto',             cat:'Salumi',       sub:'Salumi',     em:'🥩', tags:['alta qualita','di Praga'],                               gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'pr_crudo',   nome:'Prosciutto crudo',             cat:'Salumi',       sub:'Salumi',     em:'🥩', tags:['San Daniele','di Parma','di Norcia'],                    gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'salame',     nome:'Salame',                       cat:'Salumi',       sub:'Salumi',     em:'🌭', tags:['Milano','piccante','di Felino'],                         gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'mortadella', nome:'Mortadella',                   cat:'Salumi',       sub:'Salumi',     em:'🌭', tags:['classica','con pistacchi'],                              gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'bresaola',   nome:'Bresaola',                     cat:'Salumi',       sub:'Salumi',     em:'🥩', tags:[],                                                        gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'speck',      nome:'Speck',                        cat:'Salumi',       sub:'Salumi',     em:'🥩', tags:[],                                                        gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'uova',       nome:'Uova',                         cat:'Uova',         sub:'Uova',       em:'🥚', tags:['fritte','strapazzate','bollite','omelette','sode'],      gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'latte',      nome:'Latte',                        cat:'Latticini',    sub:'Latte',      em:'🥛', tags:['intero','scremato','vegetale','di soia','di avena'],     gluten:false, lactose:true,  fodmap:'high', gi:'low'},
+  {id:'yogurt',     nome:'Yogurt',                       cat:'Latticini',    sub:'Yogurt',     em:'🫙', tags:['bianco','alla frutta','greco','kefir'],                  gluten:false, lactose:true,  fodmap:'high', gi:'low'},
+  {id:'mozzarella', nome:'Mozzarella',                   cat:'Latticini',    sub:'Freschi',    em:'🧀', tags:['fiordilatte','di bufala','affumicata'],                  gluten:false, lactose:true,  fodmap:'med',  gi:'low'},
+  {id:'parmigiano', nome:'Parmigiano / Grana',           cat:'Latticini',    sub:'Stagionati', em:'🧀', tags:['parmigiano','grana padano','grattugiato'],               gluten:false, lactose:true,  fodmap:'low',  gi:'low'},
+  {id:'ricotta',    nome:'Ricotta',                      cat:'Latticini',    sub:'Freschi',    em:'🧀', tags:['di mucca','di pecora'],                                  gluten:false, lactose:true,  fodmap:'high', gi:'low'},
+  {id:'formaggio',  nome:'Formaggio stagionato',         cat:'Latticini',    sub:'Stagionati', em:'🧀', tags:['pecorino','gorgonzola','brie','emmental','asiago'],       gluten:false, lactose:true,  fodmap:'low',  gi:'low'},
+  {id:'fagioli',    nome:'Fagioli',                      cat:'Legumi',       sub:'Legumi',     em:'🫘', tags:['borlotti','cannellini','neri','in scatola'],             gluten:false, lactose:false, fodmap:'high', gi:'low'},
+  {id:'ceci',       nome:'Ceci',                         cat:'Legumi',       sub:'Legumi',     em:'🫘', tags:['in scatola','hummus','in padella'],                      gluten:false, lactose:false, fodmap:'high', gi:'low'},
+  {id:'lenticchie', nome:'Lenticchie',                   cat:'Legumi',       sub:'Legumi',     em:'🫘', tags:['rosse','verdi','beluga','in umido'],                     gluten:false, lactose:false, fodmap:'med',  gi:'low'},
+  {id:'piselli',    nome:'Piselli',                      cat:'Legumi',       sub:'Legumi',     em:'🫛', tags:['freschi','surgelati','in scatola'],                      gluten:false, lactose:false, fodmap:'med',  gi:'low'},
+  {id:'insalata',   nome:'Insalata',                     cat:'Verdure',      sub:'Insalata',   em:'🥗', tags:['verde','mista','rucola','spinacino','radicchio'],        gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'pomodori',   nome:'Pomodori',                     cat:'Verdure',      sub:'Pomodori',   em:'🍅', tags:['ciliegini','pachino','san marzano','pelati'],            gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'zucchine',   nome:'Zucchine',                     cat:'Verdure',      sub:'Zucchine',   em:'🥒', tags:['grigliate','trifolate','crude'],                         gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'carote',     nome:'Carote',                       cat:'Verdure',      sub:'Carote',     em:'🥕', tags:['crude','cotte','grattugiate'],                           gluten:false, lactose:false, fodmap:'low',  gi:'med'},
+  {id:'patate',     nome:'Patate',                       cat:'Verdure',      sub:'Patate',     em:'🥔', tags:['al forno','bollite','fritte','pure','novelle'],          gluten:false, lactose:false, fodmap:'low',  gi:'high'},
+  {id:'melanzane',  nome:'Melanzane',                    cat:'Verdure',      sub:'Melanzane',  em:'🍆', tags:['grigliate','parmigiana','al forno'],                     gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'peperoni',   nome:'Peperoni',                     cat:'Verdure',      sub:'Peperoni',   em:'🫑', tags:['rossi','gialli','verdi','arrostiti'],                    gluten:false, lactose:false, fodmap:'med',  gi:'low'},
+  {id:'spinaci',    nome:'Spinaci',                      cat:'Verdure',      sub:'Spinaci',    em:'🥬', tags:['freschi','saltati','al vapore','surgelati'],             gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'broccoli',   nome:'Broccoli',                     cat:'Verdure',      sub:'Broccoli',   em:'🥦', tags:['al vapore','ripassati','al forno'],                      gluten:false, lactose:false, fodmap:'med',  gi:'low'},
+  {id:'cipolla',    nome:'Cipolla / Aglio',              cat:'Verdure',      sub:'Aromatici',  em:'🧅', tags:['cipolla','aglio','porro','scalogno'],                    gluten:false, lactose:false, fodmap:'high', gi:'low'},
+  {id:'funghi',     nome:'Funghi',                       cat:'Verdure',      sub:'Funghi',     em:'🍄', tags:['champignon','porcini','trifolati','secchi'],             gluten:false, lactose:false, fodmap:'high', gi:'low'},
+  {id:'cavolo',     nome:'Cavolfiore / Cavolo',          cat:'Verdure',      sub:'Cavoli',     em:'🥦', tags:['cavolfiore','cappuccio','verza','kale'],                 gluten:false, lactose:false, fodmap:'high', gi:'low'},
+  {id:'mela',       nome:'Mela / Pera',                  cat:'Frutta',       sub:'Frutta',     em:'🍎', tags:['mela','pera','cotogna'],                                 gluten:false, lactose:false, fodmap:'high', gi:'low'},
+  {id:'banana',     nome:'Banana',                       cat:'Frutta',       sub:'Frutta',     em:'🍌', tags:[],                                                        gluten:false, lactose:false, fodmap:'med',  gi:'med'},
+  {id:'agrumi',     nome:'Agrumi',                       cat:'Frutta',       sub:'Frutta',     em:'🍊', tags:['arancia','mandarino','limone','pompelmo'],               gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'pesca',      nome:'Pesca / Albicocca',            cat:'Frutta',       sub:'Frutta',     em:'🍑', tags:['pesca','albicocca','nettarina','susina'],                gluten:false, lactose:false, fodmap:'high', gi:'med'},
+  {id:'fragole',    nome:'Fragole',                      cat:'Frutta',       sub:'Frutta',     em:'🍓', tags:['fresche','con panna'],                                   gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'uva',        nome:'Uva',                          cat:'Frutta',       sub:'Frutta',     em:'🍇', tags:['bianca','rossa','nera'],                                 gluten:false, lactose:false, fodmap:'low',  gi:'med'},
+  {id:'kiwi',       nome:'Kiwi',                         cat:'Frutta',       sub:'Frutta',     em:'🥝', tags:[],                                                        gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'melone',     nome:'Melone / Anguria',             cat:'Frutta',       sub:'Frutta',     em:'🍉', tags:['melone','anguria'],                                      gluten:false, lactose:false, fodmap:'high', gi:'high'},
+  {id:'frutta_s',   nome:'Frutta secca',                 cat:'Frutta',       sub:'Secca',      em:'🥜', tags:['noci','mandorle','nocciole','pistacchi','anacardi'],     gluten:false, lactose:false, fodmap:'med',  gi:'low'},
+  {id:'biscotti',   nome:'Biscotti',                     cat:'Dolci',        sub:'Biscotti',   em:'🍪', tags:['secchi','al cioccolato','integrali','al burro'],         gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'torta',      nome:'Torta',                        cat:'Dolci',        sub:'Torte',      em:'🎂', tags:['di frutta','al cioccolato','cheesecake','tiramisu'],     gluten:true,  lactose:true,  fodmap:'high', gi:'high'},
+  {id:'cioccolato', nome:'Cioccolato',                   cat:'Dolci',        sub:'Cioccolato', em:'🍫', tags:['fondente','al latte','bianco','con frutta secca'],       gluten:false, lactose:true,  fodmap:'med',  gi:'med'},
+  {id:'gelato',     nome:'Gelato',                       cat:'Dolci',        sub:'Gelato',     em:'🍦', tags:['alla frutta','al cioccolato','alla crema','sorbetto'],   gluten:false, lactose:true,  fodmap:'high', gi:'med'},
+  {id:'snack',      nome:'Snack / Patatine',             cat:'Dolci',        sub:'Snack',      em:'🍿', tags:['patatine','chips','popcorn','merendina'],                gluten:false, lactose:false, fodmap:'low',  gi:'high'},
+  {id:'caffe',      nome:'Caffe',                        cat:'Bevande',      sub:'Caffe',      em:'☕', tags:['espresso','americano','cappuccino','macchiato'],         gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'te',         nome:'Te / Infuso',                  cat:'Bevande',      sub:'Te',         em:'🍵', tags:['verde','nero','bianco','camomilla','infuso'],            gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'succo',      nome:'Succo di frutta',              cat:'Bevande',      sub:'Succhi',     em:'🧃', tags:['arancia','mela','pesca','centrifugato'],                 gluten:false, lactose:false, fodmap:'med',  gi:'med'},
+  {id:'bibite',     nome:'Bibite',                       cat:'Bevande',      sub:'Bibite',     em:'🥤', tags:['cola','aranciata','limonata','gassata'],                 gluten:false, lactose:false, fodmap:'low',  gi:'high'},
+  {id:'acqua',      nome:'Acqua',                        cat:'Bevande',      sub:'Acqua',      em:'💧', tags:['naturale','frizzante'],                                  gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'vino',       nome:'Vino',                         cat:'Alcolici',     sub:'Vino',       em:'🍷', tags:['rosso','bianco','rose','bollicine','prosecco'],          gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'birra',      nome:'Birra',                        cat:'Alcolici',     sub:'Birra',      em:'🍺', tags:['chiara','scura','artigianale','IPA','rossa'],            gluten:true,  lactose:false, fodmap:'high', gi:'med'},
+  {id:'liquori',    nome:'Liquori / Distillati',         cat:'Alcolici',     sub:'Liquori',    em:'🥃', tags:['amaro','grappa','whisky','rum','gin','vodka'],           gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'cocktail',   nome:'Cocktail / Aperitivo',         cat:'Alcolici',     sub:'Cocktail',   em:'🍹', tags:['aperol spritz','negroni','gin tonic','mojito'],          gluten:false, lactose:false, fodmap:'low',  gi:'med'},
+  {id:'olio',       nome:'Olio',                         cat:'Condimenti',   sub:'Grassi',     em:'🫒', tags:['extravergine','di semi','di cocco'],                     gluten:false, lactose:false, fodmap:'low',  gi:'low'},
+  {id:'burro',      nome:'Burro',                        cat:'Condimenti',   sub:'Grassi',     em:'🧈', tags:['salato','non salato','chiarificato'],                    gluten:false, lactose:true,  fodmap:'low',  gi:'low'},
+  {id:'salse',      nome:'Salse',                        cat:'Condimenti',   sub:'Salse',      em:'🫙', tags:['ketchup','maionese','pesto','ragu','besciamella'],       gluten:false, lactose:false, fodmap:'med',  gi:'med'}
 ];
 
-const CATS = [...new Set(FOODS.map(f => f.cat))];
-
-const CAT_ICONS = {
-  'Cereali e Derivati': '🌾',
-  'Colazione':          '☀️',
-  'Carni Rosse':        '🥩',
-  'Carni Bianche':      '🍗',
-  'Pesce':              '🐟',
-  'Salumi':             '🥓',
-  'Uova':               '🥚',
-  'Latticini':          '🧀',
-  'Legumi':             '🫘',
-  'Verdure':            '🥦',
-  'Frutta':             '🍎',
-  'Dolci e Snack':      '🍪',
-  'Bevande':            '☕',
-  'Alcolici':           '🍷',
-  'Condimenti':         '🫒',
+var CAT_ICONS = {
+  'Colazione':'☀️','Cereali':'🌾','Carni Rosse':'🥩','Carni Bianche':'🍗',
+  'Pesce':'🐟','Salumi':'🥓','Uova':'🥚','Latticini':'🧀','Legumi':'🫘',
+  'Verdure':'🥦','Frutta':'🍎','Dolci':'🍪','Bevande':'☕','Alcolici':'🍷','Condimenti':'🫒'
 };
 
-const MEAL_TYPES = [
+var MEAL_TYPES = [
   {id:'colazione',lbl:'Colazione',ic:'🌅'},
   {id:'pranzo',   lbl:'Pranzo',   ic:'☀️'},
   {id:'cena',     lbl:'Cena',     ic:'🌙'},
-  {id:'spuntino', lbl:'Spuntino', ic:'🍎'},
+  {id:'spuntino', lbl:'Spuntino', ic:'🍎'}
 ];
-const MT_MAP = Object.fromEntries(MEAL_TYPES.map(m => [m.id, m]));
+var MT_MAP = {};
+MEAL_TYPES.forEach(function(m){ MT_MAP[m.id]=m; });
 
-const MONTHS_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-const MONTHS_L = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+var MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+var MESI_L = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
-/* ============================================================
-   UTILS
-============================================================ */
-function toDateStr(d) { return (d instanceof Date ? d : new Date(d)).toISOString().split('T')[0]; }
-function dayStart(s) { return new Date(s + 'T00:00:00'); }
-function dayEnd(s)   { return new Date(s + 'T23:59:59'); }
-function weekStart() { const d=new Date(); d.setDate(d.getDate()-d.getDay()+(d.getDay()===0?-6:1)); d.setHours(0,0,0,0); return d; }
-function monthStart(y,m) { return new Date(y,m,1,0,0,0); }
-function monthEnd(y,m)   { return new Date(y,m+1,0,23,59,59); }
-function fmtDate(d) {
-  const dt = d instanceof Date ? d : new Date(d);
-  const t=toDateStr(new Date()), y=toDateStr(new Date(Date.now()-86400000));
-  const s=toDateStr(dt);
-  if(s===t) return 'Oggi';
-  if(s===y) return 'Ieri';
+var TIPOLOGIE = [
+  {id:'t_gluten',    lbl:'Con glutine',    ic:'🌾'},
+  {id:'t_nogluten',  lbl:'Senza glutine',  ic:'✅'},
+  {id:'t_lactose',   lbl:'Con lattosio',   ic:'🥛'},
+  {id:'t_nolactose', lbl:'Senza lattosio', ic:'🆓'},
+  {id:'t_fod_low',   lbl:'FODMAP Low',     ic:'🟢'},
+  {id:'t_fod_med',   lbl:'FODMAP Med',     ic:'🟡'},
+  {id:'t_fod_high',  lbl:'FODMAP High',    ic:'🔴'},
+  {id:'t_gi_low',    lbl:'GI Basso',       ic:'🟢'},
+  {id:'t_gi_med',    lbl:'GI Medio',       ic:'🟡'},
+  {id:'t_gi_high',   lbl:'GI Alto',        ic:'🔴'},
+  {id:'t_alcolici',  lbl:'Alcolici',       ic:'🍷'},
+  {id:'t_colazione', lbl:'Colazione',      ic:'☀️'},
+  {id:'t_dolci',     lbl:'Dolci',          ic:'🍪'},
+  {id:'t_verdure',   lbl:'Verdure',        ic:'🥦'},
+  {id:'t_frutta',    lbl:'Frutta',         ic:'🍎'},
+  {id:'t_pesce',     lbl:'Pesce',          ic:'🐟'}
+];
+
+function matchTipo(tipoId, a) {
+  if(tipoId==='t_gluten')    return !!a.gluten && !a.glutenFree;
+  if(tipoId==='t_nogluten')  return !a.gluten || !!a.glutenFree;
+  if(tipoId==='t_lactose')   return !!a.lactose && !a.lactoseFree;
+  if(tipoId==='t_nolactose') return !a.lactose || !!a.lactoseFree;
+  if(tipoId==='t_fod_low')   return a.fodmap==='low';
+  if(tipoId==='t_fod_med')   return a.fodmap==='med';
+  if(tipoId==='t_fod_high')  return a.fodmap==='high';
+  if(tipoId==='t_gi_low')    return a.gi==='low';
+  if(tipoId==='t_gi_med')    return a.gi==='med';
+  if(tipoId==='t_gi_high')   return a.gi==='high';
+  if(tipoId==='t_alcolici')  return a.cat==='Alcolici';
+  if(tipoId==='t_colazione') return a.cat==='Colazione';
+  if(tipoId==='t_dolci')     return a.cat==='Dolci';
+  if(tipoId==='t_verdure')   return a.cat==='Verdure';
+  if(tipoId==='t_frutta')    return a.cat==='Frutta';
+  if(tipoId==='t_pesce')     return a.cat==='Pesce';
+  return false;
+}
+var TIPO_MAP = {};
+TIPOLOGIE.forEach(function(t){ TIPO_MAP[t.id]=t; });
+
+// UTILS
+function toDateStr(d){ return (d instanceof Date?d:new Date(d)).toISOString().split('T')[0]; }
+function dayStart(s){ return new Date(s+'T00:00:00'); }
+function weekStart(){ var d=new Date(); d.setDate(d.getDate()-d.getDay()+(d.getDay()===0?-6:1)); d.setHours(0,0,0,0); return d; }
+function monthStart(y,m){ return new Date(y,m,1,0,0,0); }
+function monthEnd(y,m){ return new Date(y,m+1,0,23,59,59); }
+function daysAgo(d){ return Math.floor((new Date()-(d instanceof Date?d:new Date(d)))/86400000); }
+function fmtDate(d){
+  var dt=d instanceof Date?d:new Date(d);
+  if(toDateStr(dt)===toDateStr(new Date())) return 'Oggi';
+  if(toDateStr(dt)===toDateStr(new Date(Date.now()-86400000))) return 'Ieri';
   return dt.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
 }
 
-/* ============================================================
-   FIREBASE HELPERS
-============================================================ */
-async function saveMeal(uid, data) {
-  await db.collection('foodDiary_logs').add({...data, userId:uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+// FIREBASE
+function saveMeal(uid,data){
+  return db.collection('foodDiary_logs').add(Object.assign({},data,{userId:uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()}));
 }
-async function delMeal(id) { await db.collection('foodDiary_logs').doc(id).delete(); }
-async function getLogs(uid, start, end) {
-  const s = await db.collection('foodDiary_logs').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','desc').get();
-  return s.docs.map(d => ({id:d.id,...d.data()}));
+function delMeal(id){ return db.collection('foodDiary_logs').doc(id).delete(); }
+function getLogs(uid,start,end){
+  return db.collection('foodDiary_logs').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','desc').get()
+    .then(function(s){ return s.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }); });
 }
-async function getCustomFoods(uid) {
-  const s = await db.collection('foodDiary_custom_foods').where('userId','==',uid).get();
-  return s.docs.map(d => ({id:d.id,...d.data()}));
+function getCustomFoods(uid){
+  return db.collection('foodDiary_custom_foods').where('userId','==',uid).get()
+    .then(function(s){ return s.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }); });
 }
-async function addCustomFood(uid, food) {
-  const r = await db.collection('foodDiary_custom_foods').add({...food, userId:uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  return r.id;
+function addCustomFood(uid,food){
+  return db.collection('foodDiary_custom_foods').add(Object.assign({},food,{userId:uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()}))
+    .then(function(r){ return r.id; });
 }
 
-/* ============================================================
-   ADD MEAL
-============================================================ */
-function FoodDetailPanel({food, selData, onChange}) {
-  // selData = {tags:[], glutenFree:bool, lactoseFree:bool}
-  const sd = selData || {tags:[], glutenFree:false, lactoseFree:false};
-
-  function toggleTag(t) {
-    const tags = sd.tags.includes(t) ? sd.tags.filter(x=>x!==t) : [...sd.tags, t];
-    onChange({...sd, tags});
-  }
-  function toggleGF() { onChange({...sd, glutenFree: !sd.glutenFree}); }
-  function toggleLF() { onChange({...sd, lactoseFree: !sd.lactoseFree}); }
-
-  const fodLabel = {low:'Low FODMAP',med:'Medio FODMAP',high:'High FODMAP'};
-  const fodClass = {low:'fod-low',med:'fod-med',high:'fod-high'};
-  const giLabel  = {low:'GI Basso',med:'GI Medio',high:'GI Alto'};
-  const giClass  = {low:'fod-low',med:'fod-med',high:'fod-high'};
-
+// FOOD DETAIL PANEL
+function FoodDetailPanel(props){
+  var food=props.food, sd=props.selData||{tags:[],glutenFree:false,lactoseFree:false}, onChange=props.onChange;
+  var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
+  function toggleTag(t){ onChange(Object.assign({},sd,{tags:sd.tags.indexOf(t)>=0?sd.tags.filter(function(x){return x!==t;}):sd.tags.concat([t])})); }
   return (
     <div className="fdp">
-      {/* Badge FODMAP + GI */}
-      {(food.fodmap || food.gi) && (
-        <div style={{display:'flex',gap:5,marginBottom:9,flexWrap:'wrap'}}>
-          {food.fodmap && <span className={`fod-badge ${fodClass[food.fodmap]}`}>{fodLabel[food.fodmap]}</span>}
-          {food.gi     && <span className={`fod-badge ${giClass[food.gi]}`}>{giLabel[food.gi]}</span>}
-        </div>
-      )}
-
-      {/* TAG */}
-      {food.tags && food.tags.length>0 && (
-        <div className="fdp-section">
-          <div className="fdp-lbl">🏷️ Tag — tocca per selezionare</div>
+      <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:8}}>
+        {food.fodmap ? <span className={'fbadge '+CL[food.fodmap]}>FODMAP {food.fodmap}</span> : null}
+        {food.gi ? <span className={'fbadge '+CL[food.gi]}>GI {food.gi}</span> : null}
+      </div>
+      {food.tags && food.tags.length > 0 && (
+        <div>
+          <div className="fdp-lbl">Tag</div>
           <div className="fdp-tags">
-            {food.tags.map(t=>(
-              <div key={t} className={`fdp-tag ${sd.tags.includes(t)?'on':''}`} onClick={()=>toggleTag(t)}>{t}</div>
-            ))}
+            {food.tags.map(function(t){
+              return <span key={t} className={'fdp-tag'+(sd.tags.indexOf(t)>=0?' on':'')} onClick={function(){toggleTag(t);}}>{t}</span>;
+            })}
           </div>
         </div>
       )}
-
-      {/* GLUTINE */}
       {food.gluten && (
-        <div className="fdp-section">
-          <div className="fdp-lbl">🌾 Glutine</div>
+        <div>
+          <div className="fdp-lbl">Glutine</div>
           <div className="fdp-diet">
-            <div className={`fdp-dtog ${!sd.glutenFree?'on':''}`} onClick={()=>sd.glutenFree&&toggleGF()}>
-              <span className="fdp-dtog-ic">🌾</span>
-              <div className="fdp-dtog-info">
-                <div className="fdp-dtog-name">Con glutine</div>
-                <div className="fdp-dtog-val">versione standard</div>
-              </div>
-              {!sd.glutenFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            <div className={'fdp-dtog'+(sd.glutenFree?'':' on')} onClick={function(){onChange(Object.assign({},sd,{glutenFree:false}));}}>
+              <span className="fdp-dtog-ic">🌾</span><div className="fdp-dtog-name">Con glutine</div>
             </div>
-            <div className={`fdp-dtog ${sd.glutenFree?'on':''}`} onClick={()=>!sd.glutenFree&&toggleGF()}>
-              <span className="fdp-dtog-ic">🚫</span>
-              <div className="fdp-dtog-info">
-                <div className="fdp-dtog-name">Senza glutine</div>
-                <div className="fdp-dtog-val">versione GF</div>
-              </div>
-              {sd.glutenFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            <div className={'fdp-dtog'+(sd.glutenFree?' on':'')} onClick={function(){onChange(Object.assign({},sd,{glutenFree:true}));}}>
+              <span className="fdp-dtog-ic">🚫</span><div className="fdp-dtog-name">Senza glutine</div>
             </div>
           </div>
         </div>
       )}
-
-      {/* LATTOSIO */}
       {food.lactose && (
-        <div className="fdp-section">
-          <div className="fdp-lbl">🥛 Lattosio</div>
+        <div style={{marginTop:6}}>
+          <div className="fdp-lbl">Lattosio</div>
           <div className="fdp-diet">
-            <div className={`fdp-dtog ${!sd.lactoseFree?'on':''}`} onClick={()=>sd.lactoseFree&&toggleLF()}>
-              <span className="fdp-dtog-ic">🥛</span>
-              <div className="fdp-dtog-info">
-                <div className="fdp-dtog-name">Con lattosio</div>
-                <div className="fdp-dtog-val">versione standard</div>
-              </div>
-              {!sd.lactoseFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            <div className={'fdp-dtog'+(sd.lactoseFree?'':' on')} onClick={function(){onChange(Object.assign({},sd,{lactoseFree:false}));}}>
+              <span className="fdp-dtog-ic">🥛</span><div className="fdp-dtog-name">Con lattosio</div>
             </div>
-            <div className={`fdp-dtog ${sd.lactoseFree?'on':''}`} onClick={()=>!sd.lactoseFree&&toggleLF()}>
-              <span className="fdp-dtog-ic">🚫</span>
-              <div className="fdp-dtog-info">
-                <div className="fdp-dtog-name">Senza lattosio</div>
-                <div className="fdp-dtog-val">versione SL</div>
-              </div>
-              {sd.lactoseFree && <span style={{color:'var(--green)',fontSize:14}}>✓</span>}
+            <div className={'fdp-dtog'+(sd.lactoseFree?' on':'')} onClick={function(){onChange(Object.assign({},sd,{lactoseFree:true}));}}>
+              <span className="fdp-dtog-ic">🚫</span><div className="fdp-dtog-name">Senza lattosio</div>
             </div>
           </div>
         </div>
@@ -566,199 +431,187 @@ function FoodDetailPanel({food, selData, onChange}) {
   );
 }
 
-function AddMeal({uid, allFoods, onSaved}) {
-  const today = toDateStr(new Date());
-  const [date, setDate]   = useState(today);
-  const [mt,   setMt]     = useState('pranzo');
-  const [sel,  setSel]    = useState([]); // [{...food}]
-  const [fdata, setFdata] = useState({}); // {foodId: {tags:[], glutenFree:bool, lactoseFree:bool}}
-  const [nota, setNota]   = useState('');
-  const [saving, setSaving] = useState(false);
-  const [expandedId, setExpandedId] = useState(null); // quale food è espanso nel panel
+// ADD MEAL
+function AddMeal(props){
+  var uid=props.uid, allFoods=props.allFoods, onSaved=props.onSaved;
+  var today=toDateStr(new Date());
+  var dateS=useState(today), date=dateS[0], setDate=dateS[1];
+  var mtS=useState('pranzo'), mt=mtS[0], setMt=mtS[1];
+  var selS=useState([]), sel=selS[0], setSel=selS[1];
+  var fdS=useState({}), fdata=fdS[0], setFdata=fdS[1];
+  var notaS=useState(''), nota=notaS[0], setNota=notaS[1];
+  var savingS=useState(false), saving=savingS[0], setSaving=savingS[1];
+  var imS=useState('browse'), inputMode=imS[0], setInputMode=imS[1];
+  var scS=useState(null), selCat=scS[0], setSelCat=scS[1];
+  var ssS=useState(null), selSub=ssS[0], setSelSub=ssS[1];
+  var qS=useState(''), q=qS[0], setQ=qS[1];
+  var ddS=useState(false), showDd=ddS[0], setShowDd=ddS[1];
+  var expS=useState(null), expandedId=expS[0], setExpandedId=expS[1];
+  var ddRef=useRef();
 
-  // browse state
-  const [inputMode, setInputMode] = useState('browse');
-  const [selCat,  setSelCat]  = useState(null);
-  const [selSub,  setSelSub]  = useState(null);
+  var allCats=useMemo(function(){
+    var cats=[];
+    allFoods.forEach(function(f){ if(cats.indexOf(f.cat)<0) cats.push(f.cat); });
+    return cats;
+  },[allFoods]);
 
-  // search state
-  const [q, setQ]           = useState('');
-  const [showDd, setShowDd] = useState(false);
-  const ddRef = useRef();
-
-  const allCats = useMemo(() => [...new Set(allFoods.map(f=>f.cat))], [allFoods]);
-  const subsForCat = useMemo(() => {
+  var subsForCat=useMemo(function(){
     if(!selCat) return [];
-    return [...new Set(allFoods.filter(f=>f.cat===selCat).map(f=>f.sub))];
-  }, [selCat, allFoods]);
-  const foodsToShow = useMemo(() => {
+    var subs=[];
+    allFoods.forEach(function(f){ if(f.cat===selCat && subs.indexOf(f.sub)<0) subs.push(f.sub); });
+    return subs;
+  },[selCat,allFoods]);
+
+  var foodsToShow=useMemo(function(){
     if(!selCat) return [];
-    return allFoods.filter(f => f.cat===selCat && (!selSub || f.sub===selSub));
-  }, [selCat, selSub, allFoods]);
-  const searchResults = useMemo(() => {
-    if(q.length < 2) return [];
-    const lq = q.toLowerCase();
-    return allFoods.filter(f => f.nome.toLowerCase().includes(lq) || f.cat.toLowerCase().includes(lq)).slice(0,20);
-  }, [q, allFoods]);
+    return allFoods.filter(function(f){ return f.cat===selCat && (!selSub||f.sub===selSub); });
+  },[selCat,selSub,allFoods]);
 
-  useEffect(() => {
-    function handler(e) { if(ddRef.current && !ddRef.current.contains(e.target)) setShowDd(false); }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  var searchResults=useMemo(function(){
+    if(q.length<2) return [];
+    var lq=q.toLowerCase();
+    return allFoods.filter(function(f){ return f.nome.toLowerCase().indexOf(lq)>=0||f.cat.toLowerCase().indexOf(lq)>=0; }).slice(0,20);
+  },[q,allFoods]);
 
-  function pick(f) {
-    const already = !!sel.find(x=>x.id===f.id);
-    if(already) {
-      setSel(p=>p.filter(x=>x.id!==f.id));
-      setFdata(p=>{const n={...p};delete n[f.id];return n;});
+  useEffect(function(){
+    function h(e){ if(ddRef.current&&!ddRef.current.contains(e.target)) setShowDd(false); }
+    document.addEventListener('mousedown',h);
+    return function(){ document.removeEventListener('mousedown',h); };
+  },[]);
+
+  function pick(f){
+    var already=false;
+    sel.forEach(function(x){ if(x.id===f.id) already=true; });
+    if(already){
+      setSel(function(p){ return p.filter(function(x){ return x.id!==f.id; }); });
+      setFdata(function(p){ var n=Object.assign({},p); delete n[f.id]; return n; });
       if(expandedId===f.id) setExpandedId(null);
     } else {
-      setSel(p=>[...p,f]);
-      setFdata(p=>({...p,[f.id]:{tags:[],glutenFree:false,lactoseFree:false}}));
-      setExpandedId(f.id); // apre subito il pannello
+      setSel(function(p){ return p.concat([f]); });
+      setFdata(function(p){ var n=Object.assign({},p); n[f.id]={tags:[],glutenFree:false,lactoseFree:false}; return n; });
+      setExpandedId(f.id);
     }
     setQ(''); setShowDd(false);
   }
 
-  function goBack() { if(selSub) setSelSub(null); else setSelCat(null); }
-
-  async function save() {
+  function save(){
     if(!sel.length) return;
     setSaving(true);
-    try {
-      await saveMeal(uid, {
-        data: dayStart(date),
-        tipoPasto: mt,
-        alimenti: sel.map(f=>{
-          const d = fdata[f.id]||{};
-          return {
-            foodId:f.id, nome:f.nome, em:f.em||'🍽️', cat:f.cat, sub:f.sub,
-            tags: d.tags||[],
-            glutenFree: !!(d.glutenFree),
-            lactoseFree: !!(d.lactoseFree),
-            fodmap: f.fodmap||null,
-            gi: f.gi||null,
-            gluten: f.gluten||false,
-            lactose: f.lactose||false,
-          };
-        }),
-        nota: nota.trim()
-      });
-      setSel([]); setFdata({}); setNota('');
-      setSelCat(null); setSelSub(null); setQ(''); setExpandedId(null);
-      onSaved('✅ Pasto salvato!');
-    } catch(e) { onSaved('❌ Errore: '+e.message); }
-    setSaving(false);
+    var alimenti=sel.map(function(f){
+      var d=fdata[f.id]||{};
+      return {foodId:f.id,nome:f.nome,em:f.em||'🍽️',cat:f.cat,sub:f.sub,
+        tags:d.tags||[],glutenFree:!!d.glutenFree,lactoseFree:!!d.lactoseFree,
+        fodmap:f.fodmap||null,gi:f.gi||null,gluten:!!f.gluten,lactose:!!f.lactose};
+    });
+    saveMeal(uid,{data:dayStart(date),tipoPasto:mt,alimenti:alimenti,nota:nota.trim()})
+      .then(function(){
+        setSel([]); setFdata({}); setNota(''); setSelCat(null); setSelSub(null); setQ(''); setExpandedId(null);
+        onSaved('Pasto salvato!');
+      })
+      .catch(function(e){ onSaved('Errore: '+e.message); })
+      .finally(function(){ setSaving(false); });
   }
 
-  const FOD_CL = {low:'fod-low',med:'fod-med',high:'fod-high'};
-  const FOD_LB = {low:'Low',med:'Med',high:'High'};
+  var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
+  var LB={low:'L',med:'M',high:'H'};
 
   return (
     <div>
       <div className="card">
-        <div className="card-title">✍️ Nuovo pasto</div>
-
+        <div className="card-title">Nuovo pasto</div>
         <div className="ig">
           <label className="lbl">Data</label>
-          <input type="date" className="inp" value={date} max={today} onChange={e=>setDate(e.target.value)}/>
+          <input type="date" className="inp" value={date} max={today} onChange={function(e){setDate(e.target.value);}}/>
         </div>
-
         <div className="ig">
           <label className="lbl">Tipo pasto</label>
           <div className="mt-grid">
-            {MEAL_TYPES.map(m=>(
-              <div key={m.id} className={`mt-btn ${mt===m.id?'on':''}`} onClick={()=>setMt(m.id)}>
-                <span className="mt-ic">{m.ic}</span>
-                <span className="mt-lb">{m.lbl}</span>
-              </div>
-            ))}
+            {MEAL_TYPES.map(function(m){
+              return (
+                <div key={m.id} className={'mt-btn'+(mt===m.id?' on':'')} onClick={function(){setMt(m.id);}}>
+                  <span className="mt-ic">{m.ic}</span>
+                  <span className="mt-lb">{m.lbl}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-
         <div className="ig">
           <label className="lbl">Alimenti</label>
-
-          <div className="search-mode-toggle">
-            <button className={`smt-btn ${inputMode==='browse'?'on':''}`} onClick={()=>setInputMode('browse')}>🗂️ Sfoglia</button>
-            <button className={`smt-btn ${inputMode==='search'?'on':''}`} onClick={()=>setInputMode('search')}>🔍 Cerca</button>
+          <div className="smtog">
+            <button className={'smt-btn'+(inputMode==='browse'?' on':'')} onClick={function(){setInputMode('browse');}}>Sfoglia</button>
+            <button className={'smt-btn'+(inputMode==='search'?' on':'')} onClick={function(){setInputMode('search');}}>Cerca</button>
           </div>
-
-          {/* CERCA */}
           {inputMode==='search' && (
             <div className="fs-wrap" ref={ddRef}>
               <input className="inp" placeholder="Cerca alimento..." value={q}
-                onChange={e=>{setQ(e.target.value);setShowDd(true);}} onFocus={()=>setShowDd(true)}/>
+                onChange={function(e){setQ(e.target.value);setShowDd(true);}}
+                onFocus={function(){setShowDd(true);}}/>
               {showDd && searchResults.length>0 && (
                 <div className="fs-dd">
-                  {searchResults.map(f=>(
-                    <div key={f.id} className="fs-item" onClick={()=>pick(f)}>
-                      <span>{f.em} {f.nome}</span>
-                      <div style={{display:'flex',alignItems:'center',gap:5}}>
-                        {f.fodmap && <span className={`fod-badge ${FOD_CL[f.fodmap]}`}>{FOD_LB[f.fodmap]}</span>}
-                        <span className="fs-cat">{f.cat}</span>
-                      </div>
-                    </div>
-                  ))}
+                  {searchResults.map(function(f){
+                    return <div key={f.id} className="fs-item" onClick={function(){pick(f);}}>
+                      <span>{f.em} {f.nome}</span><span className="fs-cat">{f.cat}</span>
+                    </div>;
+                  })}
                 </div>
               )}
             </div>
           )}
-
-          {/* SFOGLIA */}
           {inputMode==='browse' && (
             <div>
               {selCat && (
-                <div className="cb-breadcrumb">
-                  <button className="cb-back" onClick={goBack}>←</button>
-                  <span className="cb-path">{CAT_ICONS[selCat]||'🍽️'} <strong>{selCat}</strong>{selSub&&<> › {selSub}</>}</span>
+                <div className="cb-bc">
+                  <button className="cb-back" onClick={function(){if(selSub)setSelSub(null);else setSelCat(null);}}>←</button>
+                  <span className="cb-path">{selCat}{selSub?' › '+selSub:''}</span>
                 </div>
               )}
               {!selCat && (
                 <div className="cb-grid">
-                  {allCats.map(cat=>(
-                    <div key={cat} className="cb-cat" onClick={()=>{setSelCat(cat);setSelSub(null);}}>
-                      <span className="cb-cat-em">{CAT_ICONS[cat]||'🍽️'}</span>
-                      <span className="cb-cat-name">{cat}</span>
-                    </div>
-                  ))}
+                  {allCats.map(function(cat){
+                    return (
+                      <div key={cat} className="cb-cat" onClick={function(){setSelCat(cat);setSelSub(null);}}>
+                        <span className="cb-cat-em">{CAT_ICONS[cat]||'🍽️'}</span>
+                        <span className="cb-cat-name">{cat}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               {selCat && subsForCat.length>1 && (
                 <div className="cb-subs">
-                  <div className={`cb-sub ${!selSub?'on':''}`} onClick={()=>setSelSub(null)}>Tutti</div>
-                  {subsForCat.map(s=>(
-                    <div key={s} className={`cb-sub ${selSub===s?'on':''}`} onClick={()=>setSelSub(s)}>{s}</div>
-                  ))}
+                  <div className={'cb-sub'+(!selSub?' on':'')} onClick={function(){setSelSub(null);}}>Tutti</div>
+                  {subsForCat.map(function(s){
+                    return <div key={s} className={'cb-sub'+(selSub===s?' on':'')} onClick={function(){setSelSub(s);}}>{s}</div>;
+                  })}
                 </div>
               )}
               {selCat && (
                 <div className="cb-foods">
-                  {foodsToShow.map(f=>{
-                    const isAdded = !!sel.find(x=>x.id===f.id);
-                    const isOpen  = expandedId===f.id;
+                  {foodsToShow.map(function(f){
+                    var isAdded=false;
+                    sel.forEach(function(x){if(x.id===f.id)isAdded=true;});
+                    var isOpen=expandedId===f.id;
                     return (
                       <div key={f.id}>
-                        <div className={`cb-food ${isAdded?'added':''}`}
-                          onClick={()=>{ if(isAdded){ setExpandedId(isOpen?null:f.id); } else { pick(f); } }}>
-                          <span className="cb-food-em">{f.em}</span>
+                        <div className={'cb-food'+(isAdded?' added':'')}
+                          onClick={function(){if(isAdded){setExpandedId(isOpen?null:f.id);}else{pick(f);}}}>
+                          <span style={{fontSize:19}}>{f.em}</span>
                           <div style={{flex:1}}>
-                            <div className="cb-food-name">{f.nome}</div>
+                            <div style={{fontSize:13,fontWeight:500}}>{f.nome}</div>
                             <div style={{display:'flex',gap:4,marginTop:2,flexWrap:'wrap'}}>
-                              {f.fodmap && <span className={`fod-badge ${FOD_CL[f.fodmap]}`}>{FOD_LB[f.fodmap]}</span>}
-                              {f.gi     && <span className={`fod-badge ${FOD_CL[f.gi]}`}>GI {FOD_LB[f.gi]}</span>}
-                              {f.gluten && <span className="fod-badge" style={{background:'rgba(232,168,76,.1)',color:'#c8943c',border:'1px solid rgba(232,168,76,.25)'}}>🌾</span>}
-                              {f.lactose && <span className="fod-badge" style={{background:'rgba(160,160,200,.1)',color:'#9090bb',border:'1px solid rgba(160,160,200,.25)'}}>🥛</span>}
+                              {f.fodmap ? <span className={'fbadge '+CL[f.fodmap]}>FM {LB[f.fodmap]}</span> : null}
+                              {f.gi ? <span className={'fbadge '+CL[f.gi]}>GI {LB[f.gi]}</span> : null}
+                              {f.gluten ? <span className="fbadge fb-med">G</span> : null}
+                              {f.lactose ? <span className="fbadge" style={{background:'rgba(160,160,200,.1)',color:'#9090bb',border:'1px solid rgba(160,160,200,.25)'}}>L</span> : null}
                             </div>
                           </div>
-                          {isAdded
-                            ? <span style={{color:'var(--green)',fontSize:14,marginRight:2}}>{isOpen?'▲':'▼'}</span>
-                            : <span style={{color:'var(--text3)',fontSize:18,lineHeight:1}}>＋</span>}
+                          <span style={{color:isAdded?'var(--gn)':'var(--tx3)',fontSize:isAdded?12:16}}>{isAdded?(isOpen?'▲':'▼'):'+'}
+                          </span>
                         </div>
                         {isAdded && isOpen && (
                           <FoodDetailPanel food={f} selData={fdata[f.id]}
-                            onChange={d=>setFdata(p=>({...p,[f.id]:d}))}/>
+                            onChange={function(d){setFdata(function(p){var n=Object.assign({},p);n[f.id]=d;return n;});}}/>
                         )}
                       </div>
                     );
@@ -768,462 +621,395 @@ function AddMeal({uid, allFoods, onSaved}) {
             </div>
           )}
         </div>
-
-        {/* RIEPILOGO SELEZIONATI */}
-        {sel.length>0 && (
-          <>
+        {sel.length > 0 && (
+          <div>
             <div className="divider"/>
-            <label className="lbl" style={{marginBottom:8,display:'block'}}>Nel pasto ({sel.length})</label>
+            <div className="lbl" style={{marginBottom:8}}>Nel pasto ({sel.length})</div>
             <div className="sf-list">
-              {sel.map(f=>{
-                const d = fdata[f.id]||{};
-                const isOpen = expandedId===f.id;
+              {sel.map(function(f){
+                var d=fdata[f.id]||{};
+                var isOpen=expandedId===f.id;
                 return (
                   <div key={f.id}>
-                    <div className="sf-item" style={{cursor:'pointer'}} onClick={()=>setExpandedId(isOpen?null:f.id)}>
+                    <div className="sf-item" style={{cursor:'pointer'}} onClick={function(){setExpandedId(isOpen?null:f.id);}}>
                       <span className="sf-em">{f.em}</span>
                       <div className="sf-info">
                         <div className="sf-name">{f.nome}</div>
                         <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:3}}>
-                          {d.tags&&d.tags.map(t=><span key={t} className="tag on" style={{fontSize:10,padding:'2px 7px'}}>{t}</span>)}
-                          {d.glutenFree  && <span className="badge badge-g">senza glutine</span>}
-                          {d.lactoseFree && <span className="badge badge-g">senza lattosio</span>}
-                          {!d.tags?.length && !d.glutenFree && !d.lactoseFree && (
-                            <span style={{fontSize:10,color:'var(--text3)'}}>tocca per aggiungere tag ▼</span>
-                          )}
+                          {(d.tags||[]).map(function(t){return <span key={t} className="tag on" style={{fontSize:10,padding:'2px 7px'}}>{t}</span>;})}
+                          {d.glutenFree ? <span className="badge badge-g">SG</span> : null}
+                          {d.lactoseFree ? <span className="badge badge-g">SL</span> : null}
+                          {!(d.tags&&d.tags.length) && !d.glutenFree && !d.lactoseFree && <span style={{fontSize:10,color:'var(--tx3)'}}>tocca per tag ▼</span>}
                         </div>
                       </div>
-                      <button className="ico-btn" onClick={e=>{e.stopPropagation();setSel(p=>p.filter(x=>x.id!==f.id));setFdata(p=>{const n={...p};delete n[f.id];return n;});if(expandedId===f.id)setExpandedId(null);}}>✕</button>
+                      <button className="ico-btn" onClick={function(e){
+                        e.stopPropagation();
+                        setSel(function(p){return p.filter(function(x){return x.id!==f.id;});});
+                        setFdata(function(p){var n=Object.assign({},p);delete n[f.id];return n;});
+                        if(expandedId===f.id) setExpandedId(null);
+                      }}>✕</button>
                     </div>
                     {isOpen && (
                       <FoodDetailPanel food={f} selData={fdata[f.id]}
-                        onChange={d=>setFdata(p=>({...p,[f.id]:d}))}/>
+                        onChange={function(d){setFdata(function(p){var n=Object.assign({},p);n[f.id]=d;return n;});}}/>
                     )}
                   </div>
                 );
               })}
             </div>
-          </>
+          </div>
         )}
-
         <div className="ig">
           <label className="lbl">Note (opzionale)</label>
-          <textarea className="inp" placeholder="Dove hai mangiato, com'era, con chi..." value={nota} onChange={e=>setNota(e.target.value)}/>
+          <textarea className="inp" placeholder="Dove hai mangiato, com'era, con chi..." value={nota} onChange={function(e){setNota(e.target.value);}}/>
         </div>
-
-        <button className="btn btn-p btn-full" onClick={save} disabled={saving||sel.length===0}>
-          {saving ? 'Salvataggio...' : sel.length===0 ? 'Seleziona almeno un alimento' : `💾 Salva pasto (${sel.length} ${sel.length===1?'alimento':'alimenti'})`}
+        <button className="btn btn-p btn-full" onClick={save} disabled={saving||!sel.length}>
+          {saving?'Salvataggio...':(!sel.length?'Seleziona almeno un alimento':'Salva pasto ('+sel.length+')')}
         </button>
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   DIARY
-============================================================ */
-function Diary({uid}) {
-  const [logs, setLogs]     = useState([]);
-  const [days, setDays]     = useState(7);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+// DIARY
+function Diary(props){
+  var uid=props.uid;
+  var logsS=useState([]), logs=logsS[0], setLogs=logsS[1];
+  var daysS=useState(7), days=daysS[0], setDays=daysS[1];
+  var loadS=useState(true), loading=loadS[0], setLoading=loadS[1];
+  var errS=useState(null), error=errS[0], setError=errS[1];
+  var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
 
-  useEffect(()=>{ load(); }, [days]);
+  useEffect(function(){load();}, [days]);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const start = new Date(); start.setDate(start.getDate()-days); start.setHours(0,0,0,0);
-      const end   = new Date(); end.setHours(23,59,59,999);
-      const data  = await getLogs(uid, start, end);
-      setLogs(data);
-    } catch(e) {
-      console.error('Diary error:', e);
-      setError(e.message || 'Errore caricamento');
-    }
-    setLoading(false);
+  function load(){
+    setLoading(true); setError(null);
+    var start=new Date(); start.setDate(start.getDate()-days); start.setHours(0,0,0,0);
+    var end=new Date(); end.setHours(23,59,59,999);
+    getLogs(uid,start,end).then(function(data){setLogs(data);}).catch(function(e){setError(e.message);}).finally(function(){setLoading(false);});
   }
 
-  async function del(id) { await delMeal(id); setLogs(p=>p.filter(l=>l.id!==id)); }
-
-  const grouped = useMemo(()=>{
-    const g={};
-    logs.forEach(l=>{
-      const d = l.data?.toDate ? l.data.toDate() : new Date(l.data);
-      const k = toDateStr(d);
-      if(!g[k]) g[k]=[];
+  var grouped=useMemo(function(){
+    var g={};
+    logs.forEach(function(l){
+      var d=l.data&&l.data.toDate?l.data.toDate():new Date(l.data);
+      var k=toDateStr(d);
+      if(!g[k])g[k]=[];
       g[k].push(l);
     });
-    return Object.entries(g).sort((a,b)=>b[0].localeCompare(a[0]));
-  }, [logs]);
+    var entries=Object.entries(g);
+    entries.sort(function(a,b){return b[0]<a[0]?-1:1;});
+    return entries;
+  },[logs]);
+
+  if(loading) return <div className="spin-wrap"><div className="spinner"/></div>;
+  if(error) return (
+    <div className="card" style={{borderColor:'var(--rd)'}}>
+      <div style={{fontSize:13,color:'var(--rd)',marginBottom:8}}>Errore caricamento</div>
+      <div style={{fontSize:11,color:'var(--tx2)',marginBottom:10}}>{error}</div>
+      <button className="btn btn-s btn-full" onClick={load}>Riprova</button>
+    </div>
+  );
 
   return (
     <div>
       <div className="pills">
-        {[7,14,30,60].map(d=>(
-          <div key={d} className={`pill ${days===d?'on':''}`} onClick={()=>setDays(d)}>Ultimi {d}g</div>
-        ))}
+        {[7,14,30,60].map(function(d){
+          return <div key={d} className={'pill'+(days===d?' on':'')} onClick={function(){setDays(d);}}>Ultimi {d}g</div>;
+        })}
       </div>
-
-      {loading ? <div className="spin-wrap"><div className="spinner"/></div>
-      : error ? (
-        <div className="card" style={{borderColor:'var(--red)'}}>
-          <div style={{fontSize:13,color:'var(--red)',marginBottom:8}}>⚠️ Errore caricamento</div>
-          <div style={{fontSize:11,color:'var(--text2)',lineHeight:1.6,marginBottom:10}}>{error}</div>
-          {error.toLowerCase().includes('index') && (
-            <div style={{fontSize:11,color:'var(--accent)',lineHeight:1.6,marginBottom:10}}>
-              👆 Firestore richiede un indice composito. Copia il link nell'errore qui sopra e aprilo nel browser per crearlo automaticamente.<br/><br/>
-              Oppure vai su: <strong>Firebase Console → Firestore → Indici → Aggiungi indice</strong><br/>
-              Collection: <code style={{background:'var(--surface2)',padding:'1px 5px',borderRadius:3}}>foodDiary_logs</code><br/>
-              Campi: <code style={{background:'var(--surface2)',padding:'1px 5px',borderRadius:3}}>userId ASC, data DESC</code>
-            </div>
-          )}
-          <button className="btn btn-s btn-full" onClick={load}>🔄 Riprova</button>
-        </div>
-      )
-      : grouped.length===0 ? (
-        <div className="empty"><div className="empty-ic">📔</div><div className="empty-tx">Nessun pasto registrato in questo periodo.<br/>Inizia aggiungendo il tuo primo pasto!</div></div>
-      ) : grouped.map(([dk, dayLogs])=>(
-        <div key={dk} style={{marginBottom:18}}>
-          <div className="dy-day-hdr">
-            <span className="dy-day-lbl">{fmtDate(dk)}</span>
-            <div className="dy-dot"/>
-          </div>
-          {dayLogs.map(l=>{
-            const m = MT_MAP[l.tipoPasto]||{ic:'🍽️',lbl:l.tipoPasto};
-            return (
-              <div key={l.id} className="dy-meal">
-                <div className="dy-meal-hdr">
-                  <div className="dy-mt"><span>{m.ic}</span><span>{m.lbl}</span></div>
-                  <button className="ico-btn" onClick={()=>del(l.id)}>🗑️</button>
-                </div>
-                <div className="dy-chips">
-                  {(l.alimenti||[]).map((a,i)=>(
-                    <span key={i} className="dy-chip">
-                      <span>{a.em}</span>
-                      <span>
-                        {a.nome}
-                        {a.tags&&a.tags.length>0?` · ${a.tags.join(', ')}` :''}
-                      </span>
-                      {a.glutenFree  && <span style={{fontSize:10,color:'var(--green)'}}>GF</span>}
-                      {a.lactoseFree && <span style={{fontSize:10,color:'var(--green)'}}>SL</span>}
-                      {a.fodmap && <span className={`fod-badge ${({low:'fod-low',med:'fod-med',high:'fod-high'})[a.fodmap]}`} style={{fontSize:8}}>{({low:'Low',med:'Med',high:'High'})[a.fodmap]}</span>}
-                      {a.gi     && <span className={`fod-badge ${({low:'fod-low',med:'fod-med',high:'fod-high'})[a.gi]}`}     style={{fontSize:8}}>GI {({low:'L',med:'M',high:'H'})[a.gi]}</span>}
-                    </span>
-                  ))}
-                </div>
-                {l.nota && <div className="dy-note">"{l.nota}"</div>}
+      {grouped.length===0
+        ? <div className="empty"><div className="empty-ic">📔</div><div className="empty-tx">Nessun pasto in questo periodo.</div></div>
+        : grouped.map(function(entry){
+          var dk=entry[0], dayLogs=entry[1];
+          return (
+            <div key={dk} style={{marginBottom:18}}>
+              <div className="dy-day-hdr">
+                <span className="dy-day-lbl">{fmtDate(dk)}</span>
+                <div className="dy-dot"/>
               </div>
-            );
-          })}
-        </div>
-      ))}
+              {dayLogs.map(function(l){
+                var m=MT_MAP[l.tipoPasto]||{ic:'🍽️',lbl:l.tipoPasto||''};
+                return (
+                  <div key={l.id} className="dy-meal">
+                    <div className="dy-meal-hdr">
+                      <div className="dy-mt"><span>{m.ic}</span><span>{m.lbl}</span></div>
+                      <button className="ico-btn" onClick={function(){delMeal(l.id).then(function(){setLogs(function(p){return p.filter(function(x){return x.id!==l.id;});});});}}>🗑️</button>
+                    </div>
+                    <div className="dy-chips">
+                      {(l.alimenti||[]).map(function(a,i){
+                        return (
+                          <span key={i} className="dy-chip">
+                            <span>{a.em}</span>
+                            <span>{a.nome}{a.tags&&a.tags.length?' · '+a.tags.join(', '):''}</span>
+                            {a.glutenFree ? <span style={{fontSize:9,color:'var(--gn)'}}>SG</span> : null}
+                            {a.lactoseFree ? <span style={{fontSize:9,color:'var(--gn)'}}>SL</span> : null}
+                            {a.fodmap ? <span className={'fbadge '+CL[a.fodmap]} style={{fontSize:8}}>FM {a.fodmap}</span> : null}
+                            {a.gi ? <span className={'fbadge '+CL[a.gi]} style={{fontSize:8}}>GI {a.gi}</span> : null}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    {l.nota ? <div className="dy-note">{l.nota}</div> : null}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
     </div>
   );
 }
 
-/* ============================================================
-   STATS
-============================================================ */
+// STATS
+function Stats(props){
+  var uid=props.uid, allFoods=props.allFoods;
+  var modeS=useState('count'), mode=modeS[0], setMode=modeS[1];
+  var smS=useState('food'), subMode=smS[0], setSubMode=smS[1];
+  var qS=useState(''), q=qS[0], setQ=qS[1];
+  var ddS=useState(false), showDd=ddS[0], setShowDd=ddS[1];
+  var sfS=useState(null), selFood=sfS[0], setSelFood=sfS[1];
+  var stS=useState(null), selTipo=stS[0], setSelTipo=stS[1];
+  var perS=useState('week'), period=perS[0], setPeriod=perS[1];
+  var pyS=useState(new Date().getFullYear()), py=pyS[0], setPy=pyS[1];
+  var pmS=useState(new Date().getMonth()), pm=pmS[0], setPm=pmS[1];
+  var resS=useState(null), res=resS[0], setRes=resS[1];
+  var loadS=useState(false), loading=loadS[0], setLoading=loadS[1];
+  var topS=useState([]), top=topS[0], setTop=topS[1];
+  var tlS=useState(false), topLoad=tlS[0], setTopLoad=tlS[1];
+  var dietS=useState(null), diet=dietS[0], setDiet=dietS[1];
+  var dlS=useState(false), dietLoad=dlS[0], setDietLoad=dlS[1];
+  var ddRef=useRef();
 
-// Definizione tipologie filtrabili
-const TIPOLOGIE = [
-  {id:'gluten',      lbl:'Con glutine',      ic:'🌾', color:'#c8943c', match: a => a.gluten && !a.glutenFree},
-  {id:'no_gluten',   lbl:'Senza glutine',    ic:'✅', color:'#7ab87a', match: a => !a.gluten || a.glutenFree},
-  {id:'lactose',     lbl:'Con lattosio',     ic:'🥛', color:'#9090bb', match: a => a.lactose && !a.lactoseFree},
-  {id:'no_lactose',  lbl:'Senza lattosio',   ic:'✅', color:'#7ab87a', match: a => !a.lactose || a.lactoseFree},
-  {id:'fodmap_low',  lbl:'FODMAP Low',       ic:'🟢', color:'#7ab87a', match: a => a.fodmap==='low'},
-  {id:'fodmap_med',  lbl:'FODMAP Med',       ic:'🟡', color:'#e8a84c', match: a => a.fodmap==='med'},
-  {id:'fodmap_high', lbl:'FODMAP High',      ic:'🔴', color:'#e87a7a', match: a => a.fodmap==='high'},
-  {id:'gi_low',      lbl:'GI Basso',         ic:'🟢', color:'#7ab87a', match: a => a.gi==='low'},
-  {id:'gi_med',      lbl:'GI Medio',         ic:'🟡', color:'#e8a84c', match: a => a.gi==='med'},
-  {id:'gi_high',     lbl:'GI Alto',          ic:'🔴', color:'#e87a7a', match: a => a.gi==='high'},
-  {id:'alcolici',    lbl:'Alcolici',         ic:'🍷', color:'#c87aa8', match: a => a.cat==='Alcolici'},
-  {id:'colazione',   lbl:'Colazione',        ic:'☀️', color:'#e8a84c', match: a => a.cat==='Colazione'},
-  {id:'dolci',       lbl:'Dolci e Snack',    ic:'🍪', color:'#e8a84c', match: a => a.cat==='Dolci e Snack'},
-  {id:'verdure',     lbl:'Verdure',          ic:'🥦', color:'#7ab87a', match: a => a.cat==='Verdure'},
-  {id:'frutta',      lbl:'Frutta',           ic:'🍎', color:'#7ab87a', match: a => a.cat==='Frutta'},
-  {id:'pesce',       lbl:'Pesce',            ic:'🐟', color:'#7ab87a', match: a => a.cat==='Pesce'},
-];
-const TIPO_MAP = Object.fromEntries(TIPOLOGIE.map(t=>[t.id,t]));
-
-function daysAgo(date) {
-  const diff = new Date() - (date instanceof Date ? date : new Date(date));
-  return Math.floor(diff / 86400000);
-}
-
-function Stats({uid, allFoods}) {
-  const [mode, setMode]       = useState('count');
-  const [subMode, setSubMode] = useState('food'); // 'food' | 'tipo'
-  const [q,    setQ]          = useState('');
-  const [showDd, setShowDd]   = useState(false);
-  const [selFood, setSelFood] = useState(null);
-  const [selTipo, setSelTipo] = useState(null);
-  const [period, setPeriod]   = useState('week');
-  const [py, setPy]           = useState(new Date().getFullYear());
-  const [pm, setPm]           = useState(new Date().getMonth());
-  const [res, setRes]         = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [top, setTop]         = useState([]);
-  const [topLoad,setTopLoad]  = useState(false);
-  const [diet, setDiet]       = useState(null);
-  const [dietLoad,setDietLoad]= useState(false);
-  const ddRef = useRef();
-
-  useEffect(()=>{
+  useEffect(function(){
     function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setShowDd(false);}
-    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+    document.addEventListener('mousedown',h);
+    return function(){document.removeEventListener('mousedown',h);};
   },[]);
 
-  const fdResults = useMemo(()=>{
+  var fdResults=useMemo(function(){
     if(q.length<2) return [];
-    const lq=q.toLowerCase();
-    return allFoods.filter(f=>f.nome.toLowerCase().includes(lq)).slice(0,10);
+    var lq=q.toLowerCase();
+    return allFoods.filter(function(f){return f.nome.toLowerCase().indexOf(lq)>=0;}).slice(0,10);
   },[q,allFoods]);
 
-  function getDates() {
-    const now=new Date();
-    if(period==='week')  return {start:weekStart(), end:now};
-    if(period==='month') return {start:monthStart(now.getFullYear(),now.getMonth()), end:now};
-    if(period==='pick')  return {start:monthStart(py,pm), end:monthEnd(py,pm)};
-    return {start:weekStart(),end:now};
+  function getDates(){
+    var now=new Date();
+    if(period==='week') return {start:weekStart(),end:now};
+    if(period==='month') return {start:monthStart(now.getFullYear(),now.getMonth()),end:now};
+    return {start:monthStart(py,pm),end:monthEnd(py,pm)};
   }
-  function getPeriodLabel() {
-    if(period==='week')  return 'questa settimana';
-    if(period==='month') return MONTHS_L[new Date().getMonth()];
-    if(period==='pick')  return `${MONTHS_L[pm]} ${py}`;
-    return '';
+  function getPeriodLabel(){
+    if(period==='week') return 'questa settimana';
+    if(period==='month') return MESI_L[new Date().getMonth()];
+    return MESI_L[pm]+' '+py;
   }
 
-  // --- PER ALIMENTO ---
-  async function doCount() {
+  function doCount(){
     if(!selFood) return;
     setLoading(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      const count=logs.reduce((acc,l)=>{
-        const hit=(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase());
-        return acc+(hit?1:0);
-      },0);
-      setRes({type:'count',count,label:selFood.nome,em:selFood.em,period:getPeriodLabel()});
-    } catch(e) { setRes({type:'error',msg:e.message}); }
-    setLoading(false);
-  }
-
-  async function doLast() {
-    if(!selFood) return;
-    setLoading(true);
-    try {
-      const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
-      const logs=s.docs.map(d=>({id:d.id,...d.data()}));
-      const found=logs.find(l=>(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase()));
-      if(found) {
-        const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
-        setRes({type:'last',label:selFood.nome,em:selFood.em,date:dt,days:daysAgo(dt),tipoPasto:found.tipoPasto,nota:found.nota});
-      } else {
-        setRes({type:'last',label:selFood.nome,em:selFood.em,date:null});
-      }
-    } catch(e) { setRes({type:'error',msg:e.message}); }
-    setLoading(false);
-  }
-
-  // --- PER TIPOLOGIA ---
-  async function doCountTipo() {
-    if(!selTipo) return;
-    setLoading(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      const tipo=TIPO_MAP[selTipo];
-      let count=0, porzioni=0;
-      logs.forEach(l=>{
-        const hit=(l.alimenti||[]).some(a=>tipo.match(a));
-        if(hit) { count++; porzioni+=(l.alimenti||[]).filter(a=>tipo.match(a)).length; }
+    var d=getDates();
+    getLogs(uid,d.start,d.end).then(function(logs){
+      var count=0;
+      logs.forEach(function(l){
+        var hit=false;
+        (l.alimenti||[]).forEach(function(a){if(a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase())hit=true;});
+        if(hit)count++;
       });
-      setRes({type:'count_tipo',tipo,count,porzioni,period:getPeriodLabel()});
-    } catch(e) { setRes({type:'error',msg:e.message}); }
-    setLoading(false);
+      setRes({type:'count',count:count,label:selFood.nome,em:selFood.em,period:getPeriodLabel()});
+    }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
   }
 
-  async function doLastTipo() {
+  function doLast(){
+    if(!selFood) return;
+    setLoading(true);
+    db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get()
+      .then(function(s){
+        var logs=s.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+        var found=null;
+        for(var i=0;i<logs.length;i++){
+          var hit=false;
+          (logs[i].alimenti||[]).forEach(function(a){if(a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase())hit=true;});
+          if(hit){found=logs[i];break;}
+        }
+        if(found){
+          var dt=found.data&&found.data.toDate?found.data.toDate():new Date(found.data);
+          setRes({type:'last',label:selFood.nome,em:selFood.em,date:dt,days:daysAgo(dt),tipoPasto:found.tipoPasto,nota:found.nota});
+        } else {
+          setRes({type:'last',label:selFood.nome,em:selFood.em,date:null});
+        }
+      }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
+  }
+
+  function doCountTipo(){
     if(!selTipo) return;
     setLoading(true);
-    try {
-      const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
-      const logs=s.docs.map(d=>({id:d.id,...d.data()}));
-      const tipo=TIPO_MAP[selTipo];
-      const found=logs.find(l=>(l.alimenti||[]).some(a=>tipo.match(a)));
-      if(found) {
-        const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
-        const esempi=(found.alimenti||[]).filter(a=>tipo.match(a)).map(a=>a.nome).slice(0,3);
-        setRes({type:'last_tipo',tipo,date:dt,days:daysAgo(dt),esempi,tipoPasto:found.tipoPasto});
-      } else {
-        setRes({type:'last_tipo',tipo,date:null,days:null});
-      }
-    } catch(e) { setRes({type:'error',msg:e.message}); }
-    setLoading(false);
+    var d=getDates();
+    getLogs(uid,d.start,d.end).then(function(logs){
+      var count=0,porzioni=0;
+      logs.forEach(function(l){
+        var match=0;
+        (l.alimenti||[]).forEach(function(a){if(matchTipo(selTipo,a))match++;});
+        if(match>0){count++;porzioni+=match;}
+      });
+      setRes({type:'count_tipo',tipo:TIPO_MAP[selTipo],count:count,porzioni:porzioni,period:getPeriodLabel()});
+    }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
   }
 
-  async function loadTop() {
+  function doLastTipo(){
+    if(!selTipo) return;
+    setLoading(true);
+    db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get()
+      .then(function(s){
+        var logs=s.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+        var found=null;
+        for(var i=0;i<logs.length;i++){
+          var hit=false;
+          (logs[i].alimenti||[]).forEach(function(a){if(matchTipo(selTipo,a))hit=true;});
+          if(hit){found=logs[i];break;}
+        }
+        if(found){
+          var dt=found.data&&found.data.toDate?found.data.toDate():new Date(found.data);
+          var esempi=[];
+          (found.alimenti||[]).forEach(function(a){if(matchTipo(selTipo,a)&&esempi.length<3)esempi.push(a.nome);});
+          setRes({type:'last_tipo',tipo:TIPO_MAP[selTipo],date:dt,days:daysAgo(dt),esempi:esempi,tipoPasto:found.tipoPasto});
+        } else {
+          setRes({type:'last_tipo',tipo:TIPO_MAP[selTipo],date:null,days:null});
+        }
+      }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
+  }
+
+  function loadTop(){
     setTopLoad(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      const cnt={};
-      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
-        const k=a.nome;
-        if(!cnt[k]) cnt[k]={nome:a.nome,em:a.em||'🍽️',cat:a.cat||'',count:0};
-        cnt[k].count++;
-      }));
-      setTop(Object.values(cnt).sort((a,b)=>b.count-a.count).slice(0,12));
-    } catch(e) { console.error('loadTop error:',e); setTop([]); }
-    setTopLoad(false);
+    var d=getDates();
+    getLogs(uid,d.start,d.end).then(function(logs){
+      var cnt={};
+      logs.forEach(function(l){
+        (l.alimenti||[]).forEach(function(a){
+          if(!cnt[a.nome])cnt[a.nome]={nome:a.nome,em:a.em||'🍽️',count:0};
+          cnt[a.nome].count++;
+        });
+      });
+      var arr=Object.values(cnt).sort(function(a,b){return b.count-a.count;}).slice(0,12);
+      setTop(arr);
+    }).catch(function(){setTop([]);}).finally(function(){setTopLoad(false);});
   }
 
-  async function loadDiet() {
+  function loadDiet(){
     setDietLoad(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      let gfCount=0, lfCount=0, fodLow=0, fodMed=0, fodHigh=0, giLow=0, giMed=0, giHigh=0, total=0;
-      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
-        total++;
-        if(a.glutenFree)  gfCount++;
-        if(a.lactoseFree) lfCount++;
-        if(a.fodmap==='low')  fodLow++;
-        if(a.fodmap==='med')  fodMed++;
-        if(a.fodmap==='high') fodHigh++;
-        if(a.gi==='low')  giLow++;
-        if(a.gi==='med')  giMed++;
-        if(a.gi==='high') giHigh++;
-      }));
-      setDiet({gfCount,lfCount,fodLow,fodMed,fodHigh,giLow,giMed,giHigh,total,meals:logs.length});
-    } catch(e) { console.error(e); setDiet(null); }
-    setDietLoad(false);
+    var d=getDates();
+    getLogs(uid,d.start,d.end).then(function(logs){
+      var r={gf:0,lf:0,fl:0,fm:0,fh:0,gl:0,gm:0,gh:0,tot:0,meals:logs.length};
+      logs.forEach(function(l){
+        (l.alimenti||[]).forEach(function(a){
+          r.tot++;
+          if(a.glutenFree)r.gf++;
+          if(a.lactoseFree)r.lf++;
+          if(a.fodmap==='low')r.fl++;
+          if(a.fodmap==='med')r.fm++;
+          if(a.fodmap==='high')r.fh++;
+          if(a.gi==='low')r.gl++;
+          if(a.gi==='med')r.gm++;
+          if(a.gi==='high')r.gh++;
+        });
+      });
+      setDiet(r);
+    }).catch(function(){setDiet(null);}).finally(function(){setDietLoad(false);});
   }
 
-  useEffect(()=>{
-    if(mode==='top')  { loadTop(); setDiet(null); }
-    else if(mode==='diet') { loadDiet(); setTop([]); }
-    else { setTop([]); setDiet(null); }
+  useEffect(function(){
+    if(mode==='top'){loadTop();setDiet(null);}
+    else if(mode==='diet'){loadDiet();setTop([]);}
+    else{setTop([]);setDiet(null);}
   },[mode,period,py,pm]);
 
-  const PeriodSelector = () => (
-    <div className="card" style={{marginBottom:11}}>
-      <label className="lbl">Periodo</label>
-      <div className="pills" style={{marginBottom: period==='pick'?9:0}}>
-        <div className={`pill ${period==='week'?'on':''}`}  onClick={()=>setPeriod('week')}>Questa settimana</div>
-        <div className={`pill ${period==='month'?'on':''}`} onClick={()=>setPeriod('month')}>Questo mese</div>
-        <div className={`pill ${period==='pick'?'on':''}`}  onClick={()=>setPeriod('pick')}>Scegli mese</div>
-      </div>
-      {period==='pick' && (
-        <>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y-1)}>◂</button>
-            <span style={{fontFamily:'Playfair Display',fontWeight:600,flex:1,textAlign:'center'}}>{py}</span>
-            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y+1)}>▸</button>
-          </div>
-          <div className="mo-grid">
-            {MONTHS_S.map((m,i)=>(
-              <div key={i} className={`mo-btn ${pm===i?'on':''}`} onClick={()=>setPm(i)}>{m}</div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+  var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
 
   return (
     <div>
-      {/* TAB PRINCIPALI */}
       <div className="pills">
-        {[{id:'count',lbl:'🔢 Conta'},{id:'last',lbl:'🕐 Ultima'},{id:'top',lbl:'🏆 Top'},{id:'diet',lbl:'🥗 Dieta'}].map(m=>(
-          <div key={m.id} className={`pill ${mode===m.id?'on':''}`} onClick={()=>{setMode(m.id);setRes(null);}}>
-            {m.lbl}
-          </div>
-        ))}
+        {[{id:'count',lbl:'Conta'},{id:'last',lbl:'Ultima'},{id:'top',lbl:'Top'},{id:'diet',lbl:'Dieta'}].map(function(m){
+          return <div key={m.id} className={'pill'+(mode===m.id?' on':'')} onClick={function(){setMode(m.id);setRes(null);}}>{m.lbl}</div>;
+        })}
       </div>
 
-      {/* PERIODO (non per ultima-alimento) */}
-      {!(mode==='last' && subMode==='food') && (mode==='count'||mode==='last'||mode==='top'||mode==='diet') && <PeriodSelector/>}
+      <div className="card" style={{marginBottom:11}}>
+        <div className="lbl">Periodo</div>
+        <div className="pills" style={{marginBottom:period==='pick'?9:0}}>
+          <div className={'pill'+(period==='week'?' on':'')} onClick={function(){setPeriod('week');}}>Questa settimana</div>
+          <div className={'pill'+(period==='month'?' on':'')} onClick={function(){setPeriod('month');}}>Questo mese</div>
+          <div className={'pill'+(period==='pick'?' on':'')} onClick={function(){setPeriod('pick');}}>Scegli mese</div>
+        </div>
+        {period==='pick' && (
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <button className="btn btn-s btn-sm" onClick={function(){setPy(function(y){return y-1;});}}>◂</button>
+              <span style={{fontFamily:'Playfair Display',fontWeight:600,flex:1,textAlign:'center'}}>{py}</span>
+              <button className="btn btn-s btn-sm" onClick={function(){setPy(function(y){return y+1;});}}>▸</button>
+            </div>
+            <div className="mo-grid">
+              {MESI_S.map(function(m,i){
+                return <div key={i} className={'mo-btn'+(pm===i?' on':'')} onClick={function(){setPm(i);}}>{m}</div>;
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
-      {/* SUB-TOGGLE per Conta e Ultima */}
       {(mode==='count'||mode==='last') && (
-        <div className="search-mode-toggle" style={{marginBottom:10}}>
-          <button className={`smt-btn ${subMode==='food'?'on':''}`}
-            onClick={()=>{setSubMode('food');setRes(null);setSelTipo(null);}}>
-            🍝 Per alimento
-          </button>
-          <button className={`smt-btn ${subMode==='tipo'?'on':''}`}
-            onClick={()=>{setSubMode('tipo');setRes(null);setSelFood(null);setQ('');}}>
-            🏷️ Per tipologia
-          </button>
+        <div className="smtog">
+          <button className={'smt-btn'+(subMode==='food'?' on':'')} onClick={function(){setSubMode('food');setRes(null);setSelTipo(null);}}>Per alimento</button>
+          <button className={'smt-btn'+(subMode==='tipo'?' on':'')} onClick={function(){setSubMode('tipo');setRes(null);setSelFood(null);setQ('');}}>Per tipologia</button>
         </div>
       )}
 
-      {/* CONTA / ULTIMA — PER ALIMENTO */}
       {(mode==='count'||mode==='last') && subMode==='food' && (
         <div className="card">
           <div style={{position:'relative'}} ref={ddRef}>
-            <input className="inp" placeholder="Cerca alimento..."
-              value={q}
-              onChange={e=>{setQ(e.target.value);setShowDd(true);setSelFood(null);setRes(null);}}
-              onFocus={()=>setShowDd(true)}/>
+            <input className="inp" placeholder="Cerca alimento..." value={q}
+              onChange={function(e){setQ(e.target.value);setShowDd(true);setSelFood(null);setRes(null);}}
+              onFocus={function(){setShowDd(true);}}/>
             {showDd && fdResults.length>0 && (
               <div className="fs-dd">
-                {fdResults.map(f=>(
-                  <div key={f.id} className="fs-item" onClick={()=>{setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);}}>
-                    <span>{f.em} {f.nome}</span>
-                    <span className="fs-cat">{f.cat}</span>
-                  </div>
-                ))}
+                {fdResults.map(function(f){
+                  return <div key={f.id} className="fs-item" onClick={function(){setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);}}>
+                    <span>{f.em} {f.nome}</span><span className="fs-cat">{f.cat}</span>
+                  </div>;
+                })}
               </div>
             )}
           </div>
           {selFood && (
             <div style={{marginTop:10}}>
               <button className="btn btn-p btn-full" onClick={mode==='count'?doCount:doLast} disabled={loading}>
-                {loading ? 'Ricerca...'
-                  : mode==='count'
-                    ? `Conta "${selFood.nome}" — ${getPeriodLabel()}`
-                    : `Ultima volta: "${selFood.nome}"`}
+                {loading?'Ricerca...':(mode==='count'?'Conta "'+selFood.nome+'" — '+getPeriodLabel():'Ultima: "'+selFood.nome+'"')}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* CONTA / ULTIMA — PER TIPOLOGIA */}
       {(mode==='count'||mode==='last') && subMode==='tipo' && (
         <div className="card">
-          <label className="lbl" style={{marginBottom:9,display:'block'}}>Seleziona tipologia</label>
+          <div className="lbl" style={{marginBottom:9}}>Seleziona tipologia</div>
           <div className="tipo-grid">
-            {TIPOLOGIE.map(t=>(
-              <div key={t.id} className={`tipo-card ${selTipo===t.id?'on':''}`}
-                onClick={()=>{setSelTipo(t.id);setRes(null);}}>
-                <div className="tipo-card-ic">{t.ic}</div>
-                <div className="tipo-card-name">{t.lbl}</div>
-              </div>
-            ))}
+            {TIPOLOGIE.map(function(t){
+              return (
+                <div key={t.id} className={'tipo-card'+(selTipo===t.id?' on':'')} onClick={function(){setSelTipo(t.id);setRes(null);}}>
+                  <div className="tipo-card-ic">{t.ic}</div>
+                  <div className="tipo-card-name">{t.lbl}</div>
+                </div>
+              );
+            })}
           </div>
           {selTipo && (
-            <div style={{marginTop:10}}>
-              <button className="btn btn-p btn-full"
-                onClick={mode==='count'?doCountTipo:doLastTipo}
-                disabled={loading}>
-                {loading ? 'Ricerca...'
-                  : mode==='count'
-                    ? `Conta "${TIPO_MAP[selTipo].lbl}" — ${getPeriodLabel()}`
-                    : `Ultima volta: "${TIPO_MAP[selTipo].lbl}"`}
-              </button>
-            </div>
+            <button className="btn btn-p btn-full" onClick={mode==='count'?doCountTipo:doLastTipo} disabled={loading}>
+              {loading?'Ricerca...':(mode==='count'?'Conta '+TIPO_MAP[selTipo].lbl+' — '+getPeriodLabel():'Ultima: '+TIPO_MAP[selTipo].lbl)}
+            </button>
           )}
         </div>
       )}
 
-      {/* RISULTATO — CONTA ALIMENTO */}
       {res && res.type==='count' && (
         <div className="stat-card">
           <div className="stat-qlbl">{res.em} {res.label} — {res.period}</div>
@@ -1231,379 +1017,225 @@ function Stats({uid, allFoods}) {
           <div className="stat-unit">{res.count===1?'volta':'volte'}</div>
         </div>
       )}
-
-      {/* RISULTATO — CONTA TIPOLOGIA */}
       {res && res.type==='count_tipo' && (
         <div className="stat-card">
           <div className="stat-qlbl">{res.tipo.ic} {res.tipo.lbl} — {res.period}</div>
           <div className="stat-num">{res.count}</div>
-          <div className="stat-unit">{res.count===1?'pasto':'pasti'} · {res.porzioni} {res.porzioni===1?'porzione':'porzioni'}</div>
+          <div className="stat-unit">{res.count===1?'pasto':'pasti'} · {res.porzioni} porzioni</div>
         </div>
       )}
-
-      {/* RISULTATO — ULTIMA ALIMENTO */}
       {res && res.type==='last' && (
         <div className="stat-card">
           <div className="stat-qlbl">Ultima volta: {res.em} {res.label}</div>
           {res.date ? (
-            <>
-              <div className="stat-date">{fmtDate(res.date)}</div>
-              <div className="stat-meta">
-                {res.days===0 ? 'Oggi' : res.days===1 ? 'Ieri' : `${res.days} giorni fa`}
-                {res.tipoPasto ? ` · ${MT_MAP[res.tipoPasto]?.ic} ${MT_MAP[res.tipoPasto]?.lbl}` : ''}
-                {res.nota ? ` · "${res.nota}"` : ''}
-              </div>
-            </>
-          ) : (
-            <div style={{color:'var(--text3)',fontSize:14,marginTop:8}}>Mai registrato</div>
-          )}
+            <div>
+              <div className="stat-num">{res.days}</div>
+              <div className="stat-unit">{res.days===0?'oggi':res.days===1?'giorno fa':'giorni fa'}</div>
+              <div className="stat-date" style={{marginTop:8}}>{fmtDate(res.date)}</div>
+              {res.tipoPasto ? <div className="stat-meta">{MT_MAP[res.tipoPasto]?MT_MAP[res.tipoPasto].ic+' '+MT_MAP[res.tipoPasto].lbl:''}{res.nota?' · "'+res.nota+'"':''}</div> : null}
+            </div>
+          ) : <div style={{color:'var(--tx3)',fontSize:14,marginTop:8}}>Mai registrato</div>}
         </div>
       )}
-
-      {/* RISULTATO — ULTIMA TIPOLOGIA */}
       {res && res.type==='last_tipo' && (
         <div className="stat-card">
-          <div className="stat-qlbl">
-            {res.tipo.ic} Ultima volta: {res.tipo.lbl}
-          </div>
+          <div className="stat-qlbl">{res.tipo.ic} Ultima: {res.tipo.lbl}</div>
           {res.date ? (
-            <>
-              <div className="stat-days">{res.days}</div>
-              <div className="stat-days-unit">{res.days===1?'giorno fa':'giorni fa'}</div>
-              <div className="stat-date" style={{fontSize:15,marginTop:8}}>{fmtDate(res.date)}</div>
-              {res.esempi?.length>0 && (
-                <div className="stat-meta" style={{marginTop:5}}>
-                  {MT_MAP[res.tipoPasto]?.ic} {MT_MAP[res.tipoPasto]?.lbl} · {res.esempi.join(', ')}
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{color:'var(--text3)',fontSize:14,marginTop:8}}>
-              Mai registrato nei dati disponibili
+            <div>
+              <div className="stat-num">{res.days}</div>
+              <div className="stat-unit">{res.days===0?'oggi':res.days===1?'giorno fa':'giorni fa'}</div>
+              <div className="stat-date" style={{marginTop:8}}>{fmtDate(res.date)}</div>
+              {res.esempi&&res.esempi.length ? <div className="stat-meta">{res.esempi.join(', ')}</div> : null}
             </div>
-          )}
+          ) : <div style={{color:'var(--tx3)',fontSize:14,marginTop:8}}>Mai registrato</div>}
         </div>
       )}
+      {res && res.type==='err' && <div className="card" style={{borderColor:'var(--rd)'}}><div style={{color:'var(--rd)',fontSize:13}}>{res.msg}</div></div>}
 
-      {/* TOP ALIMENTI */}
       {mode==='top' && (
         <div className="card">
-          <div className="card-title">🏆 Alimenti più frequenti — {getPeriodLabel()}</div>
-          {topLoad ? (
-            <div className="spin-wrap"><div className="spinner"/></div>
-          ) : top.length===0 ? (
-            <div className="empty"><div className="empty-ic">📊</div><div className="empty-tx">Nessun dato per questo periodo.</div></div>
-          ) : top.map((f,i)=>(
-            <div key={f.nome} className="tf-row">
-              <div className="tf-rank">{i+1}</div>
-              <span style={{fontSize:17}}>{f.em}</span>
-              <div className="tf-name">{f.nome}</div>
-              <div className="tf-track"><div className="tf-fill" style={{width:`${(f.count/top[0].count)*100}%`}}/></div>
-              <div className="tf-cnt">{f.count}×</div>
-            </div>
-          ))}
+          <div className="card-title">Top alimenti — {getPeriodLabel()}</div>
+          {topLoad ? <div className="spin-wrap"><div className="spinner"/></div>
+          : top.length===0 ? <div className="empty"><div className="empty-tx">Nessun dato.</div></div>
+          : top.map(function(f,i){
+            return (
+              <div key={f.nome} className="tf-row">
+                <div className="tf-rank">{i+1}</div>
+                <span style={{fontSize:17}}>{f.em}</span>
+                <div className="tf-name">{f.nome}</div>
+                <div className="tf-track"><div className="tf-fill" style={{width:Math.round(f.count/top[0].count*100)+'%'}}/></div>
+                <div className="tf-cnt">{f.count}x</div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* DIETA */}
       {mode==='diet' && (
         dietLoad ? <div className="spin-wrap"><div className="spinner"/></div>
-        : !diet ? <div className="empty"><div className="empty-ic">🥗</div><div className="empty-tx">Nessun dato.</div></div>
+        : !diet ? <div className="empty"><div className="empty-tx">Nessun dato.</div></div>
         : (
-          <>
-            <div className="card">
-              <div className="card-title">🥗 Analisi dieta — {getPeriodLabel()}</div>
-              <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>{diet.meals} pasti · {diet.total} alimenti registrati</div>
-              <div className="ds-grid">
-                <div className="ds-card">
-                  <div className="ds-ic">🌾</div>
-                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.gfCount}</div>
-                  <div className="ds-lbl">porzioni<br/>senza glutine</div>
+          <div className="card">
+            <div className="card-title">Analisi dieta — {getPeriodLabel()}</div>
+            <div style={{fontSize:12,color:'var(--tx3)',marginBottom:12}}>{diet.meals} pasti · {diet.tot} alimenti</div>
+            <div className="ds-grid">
+              <div className="ds-card"><div className="ds-ic">🌾</div><div className="ds-num" style={{color:'var(--ac)'}}>{diet.gf}</div><div className="ds-lbl">senza glutine</div></div>
+              <div className="ds-card"><div className="ds-ic">🥛</div><div className="ds-num" style={{color:'var(--ac)'}}>{diet.lf}</div><div className="ds-lbl">senza lattosio</div></div>
+            </div>
+            <div className="lbl" style={{marginBottom:6}}>FODMAP</div>
+            {diet.tot>0 && (
+              <div>
+                <div className="fbar">
+                  <div className="fseg" style={{width:Math.round(diet.fl/diet.tot*100)+'%',background:'#7ab87a'}}/>
+                  <div className="fseg" style={{width:Math.round(diet.fm/diet.tot*100)+'%',background:'#e8a84c'}}/>
+                  <div className="fseg" style={{width:Math.round(diet.fh/diet.tot*100)+'%',background:'#e87a7a'}}/>
                 </div>
-                <div className="ds-card">
-                  <div className="ds-ic">🥛</div>
-                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.lfCount}</div>
-                  <div className="ds-lbl">porzioni<br/>senza lattosio</div>
+                <div className="fleg">
+                  <div className="fleg-i"><div className="fleg-d" style={{background:'#7ab87a'}}/> Low: {diet.fl} ({Math.round(diet.fl/diet.tot*100)}%)</div>
+                  <div className="fleg-i"><div className="fleg-d" style={{background:'#e8a84c'}}/> Med: {diet.fm} ({Math.round(diet.fm/diet.tot*100)}%)</div>
+                  <div className="fleg-i"><div className="fleg-d" style={{background:'#e87a7a'}}/> High: {diet.fh} ({Math.round(diet.fh/diet.tot*100)}%)</div>
                 </div>
               </div>
-              <label className="lbl" style={{marginBottom:8,display:'block'}}>Distribuzione FODMAP</label>
-              {diet.total>0 ? (
-                <>
-                  <div className="fodmap-bar">
-                    <div className="fodmap-seg" style={{width:`${(diet.fodLow/diet.total)*100}%`,background:'#7ab87a'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.fodMed/diet.total)*100}%`,background:'#e8a84c'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.fodHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
-                  </div>
-                  <div className="fodmap-legend">
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Low: {diet.fodLow} ({Math.round(diet.fodLow/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Med: {diet.fodMed} ({Math.round(diet.fodMed/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> High: {diet.fodHigh} ({Math.round(diet.fodHigh/diet.total*100)}%)</div>
-                  </div>
-                </>
-              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato FODMAP disponibile</div>}
-              <div className="divider"/>
-              <label className="lbl" style={{marginBottom:8,display:'block',marginTop:8}}>Indice Glicemico</label>
-              {diet.total>0 ? (
-                <>
-                  <div className="fodmap-bar">
-                    <div className="fodmap-seg" style={{width:`${(diet.giLow/diet.total)*100}%`,background:'#7ab87a'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.giMed/diet.total)*100}%`,background:'#e8a84c'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.giHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
-                  </div>
-                  <div className="fodmap-legend">
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Basso: {diet.giLow} ({Math.round(diet.giLow/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Medio: {diet.giMed} ({Math.round(diet.giMed/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> Alto: {diet.giHigh} ({Math.round(diet.giHigh/diet.total*100)}%)</div>
-                  </div>
-                </>
-              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato GI disponibile</div>}
-            </div>
-          </>
+            )}
+            <div className="divider"/>
+            <div className="lbl" style={{marginBottom:6,marginTop:8}}>Indice Glicemico</div>
+            {diet.tot>0 && (
+              <div>
+                <div className="fbar">
+                  <div className="fseg" style={{width:Math.round(diet.gl/diet.tot*100)+'%',background:'#7ab87a'}}/>
+                  <div className="fseg" style={{width:Math.round(diet.gm/diet.tot*100)+'%',background:'#e8a84c'}}/>
+                  <div className="fseg" style={{width:Math.round(diet.gh/diet.tot*100)+'%',background:'#e87a7a'}}/>
+                </div>
+                <div className="fleg">
+                  <div className="fleg-i"><div className="fleg-d" style={{background:'#7ab87a'}}/> Basso: {diet.gl} ({Math.round(diet.gl/diet.tot*100)}%)</div>
+                  <div className="fleg-i"><div className="fleg-d" style={{background:'#e8a84c'}}/> Medio: {diet.gm} ({Math.round(diet.gm/diet.tot*100)}%)</div>
+                  <div className="fleg-i"><div className="fleg-d" style={{background:'#e87a7a'}}/> Alto: {diet.gh} ({Math.round(diet.gh/diet.tot*100)}%)</div>
+                </div>
+              </div>
+            )}
+          </div>
         )
       )}
     </div>
   );
 }
 
-  useEffect(()=>{
-    function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setShowDd(false);}
-    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
-  },[]);
+// CATALOG
+function Catalog(props){
+  var uid=props.uid, custom=props.custom, onAdded=props.onAdded;
+  var openS=useState({}), open=openS[0], setOpen=openS[1];
+  var fqS=useState(''), fq=fqS[0], setFq=fqS[1];
+  var showS=useState(false), show=showS[0], setShow=showS[1];
+  var nfS=useState({nome:'',cat:'',sub:'',em:'',tags:''}), nf=nfS[0], setNf=nfS[1];
+  var savS=useState(false), saving=savS[0], setSaving=savS[1];
+  var allFoods=FOODS.concat(custom);
+  var CATS=[];
+  FOODS.forEach(function(f){if(CATS.indexOf(f.cat)<0)CATS.push(f.cat);});
 
-  const fdResults = useMemo(()=>{
-    if(q.length<2) return [];
-    const lq=q.toLowerCase();
-    return allFoods.filter(f=>f.nome.toLowerCase().includes(lq)).slice(0,10);
-  },[q,allFoods]);
-
-  function getDates() {
-    const now=new Date();
-    if(period==='week')  return {start:weekStart(), end:now};
-    if(period==='month') return {start:monthStart(now.getFullYear(),now.getMonth()), end:now};
-    if(period==='pick')  return {start:monthStart(py,pm), end:monthEnd(py,pm)};
-    return {start:weekStart(),end:now};
-  }
-  function getPeriodLabel() {
-    if(period==='week')  return 'questa settimana';
-    if(period==='month') return MONTHS_L[new Date().getMonth()];
-    if(period==='pick')  return `${MONTHS_L[pm]} ${py}`;
-    return '';
-  }
-
-  async function doCount() {
-    if(!selFood) return;
-    setLoading(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      const count=logs.reduce((acc,l)=>{
-        const hit=(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase());
-        return acc+(hit?1:0);
-      },0);
-      setRes({type:'count',count,food:selFood,period:getPeriodLabel()});
-    } catch(e) { setRes({type:'error',msg:e.message}); }
-    setLoading(false);
-  }
-
-  async function doLast() {
-    if(!selFood) return;
-    setLoading(true);
-    try {
-      const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
-      const logs=s.docs.map(d=>({id:d.id,...d.data()}));
-      const found=logs.find(l=>(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase()));
-      if(found) {
-        const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
-        setRes({type:'last',food:selFood,date:dt,tipoPasto:found.tipoPasto,nota:found.nota});
-      } else {
-        setRes({type:'last',food:selFood,date:null});
-      }
-    } catch(e) { setRes({type:'error',msg:e.message}); }
-    setLoading(false);
-  }
-
-  async function loadTop() {
-    setTopLoad(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      const cnt={};
-      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
-        const k=a.nome;
-        if(!cnt[k]) cnt[k]={nome:a.nome,em:a.em||'🍽️',cat:a.cat||'',count:0};
-        cnt[k].count++;
-      }));
-      setTop(Object.values(cnt).sort((a,b)=>b.count-a.count).slice(0,12));
-    } catch(e) { console.error('loadTop error:',e); setTop([]); }
-    setTopLoad(false);
-  }
-
-  async function loadDiet() {
-    setDietLoad(true);
-    try {
-      const {start,end}=getDates();
-      const logs=await getLogs(uid,start,end);
-      let gfCount=0, lfCount=0, fodLow=0, fodMed=0, fodHigh=0, giLow=0, giMed=0, giHigh=0, total=0;
-      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
-        total++;
-        if(a.glutenFree)  gfCount++;
-        if(a.lactoseFree) lfCount++;
-        if(a.fodmap==='low')  fodLow++;
-        if(a.fodmap==='med')  fodMed++;
-        if(a.fodmap==='high') fodHigh++;
-        if(a.gi==='low')  giLow++;
-        if(a.gi==='med')  giMed++;
-        if(a.gi==='high') giHigh++;
-      }));
-      setDiet({gfCount,lfCount,fodLow,fodMed,fodHigh,giLow,giMed,giHigh,total,meals:logs.length});
-    } catch(e) { console.error(e); setDiet(null); }
-    setDietLoad(false);
-  }
-
-  useEffect(()=>{
-    if(mode==='top')  { loadTop(); setDiet(null); }
-    else if(mode==='diet') { loadDiet(); setTop([]); }
-    else { setTop([]); setDiet(null); }
-  },[mode,period,py,pm]);
-
-
-/* ============================================================
-   CATALOG
-============================================================ */
-function Catalog({uid, custom, onAdded}) {
-  const [open, setOpen]   = useState({});
-  const [fq,   setFq]     = useState('');
-  const [show, setShow]   = useState(false);
-  const [nf,   setNf]     = useState({nome:'',cat:'',sub:'',em:'',tags:''});
-  const [saving,setSaving] = useState(false);
-
-  const allFoods = [...FOODS, ...custom];
-
-  const filtered = useMemo(()=>{
+  var filtered=useMemo(function(){
     if(!fq) return allFoods;
-    const lq=fq.toLowerCase();
-    return allFoods.filter(f=>f.nome.toLowerCase().includes(lq)||f.cat.toLowerCase().includes(lq));
+    var lq=fq.toLowerCase();
+    return allFoods.filter(function(f){return f.nome.toLowerCase().indexOf(lq)>=0||f.cat.toLowerCase().indexOf(lq)>=0;});
   },[fq,custom]);
 
-  const grouped = useMemo(()=>{
-    const g={};
-    filtered.forEach(f=>{ if(!g[f.cat])g[f.cat]=[]; g[f.cat].push(f); });
+  var grouped=useMemo(function(){
+    var g={};
+    filtered.forEach(function(f){if(!g[f.cat])g[f.cat]=[];g[f.cat].push(f);});
     return g;
   },[filtered]);
 
-  async function saveNew() {
+  function saveNew(){
     if(!nf.nome||!nf.cat) return;
     setSaving(true);
-    const food = {
-      id:'custom_'+Date.now(),
-      nome:nf.nome.trim(), cat:nf.cat.trim(),
-      sub:nf.sub.trim()||nf.cat.trim(),
-      em:nf.em||'🍽️',
-      tags:nf.tags.split(',').map(t=>t.trim()).filter(Boolean),
-      custom:true
-    };
-    const docId = await addCustomFood(uid, food);
-    onAdded({...food, firestoreId: docId});
-    setNf({nome:'',cat:'',sub:'',em:'',tags:''});
-    setShow(false);
-    setSaving(false);
+    var food={id:'custom_'+Date.now(),nome:nf.nome.trim(),cat:nf.cat.trim(),sub:nf.sub.trim()||nf.cat.trim(),em:nf.em||'🍽️',
+      tags:nf.tags.split(',').map(function(t){return t.trim();}).filter(Boolean),custom:true};
+    addCustomFood(uid,food).then(function(docId){
+      onAdded(Object.assign({},food,{firestoreId:docId}));
+      setNf({nome:'',cat:'',sub:'',em:'',tags:''});
+      setShow(false);
+    }).finally(function(){setSaving(false);});
   }
 
   return (
     <div>
       <div style={{display:'flex',gap:8,marginBottom:12}}>
-        <input className="inp" style={{flex:1}} placeholder="Filtra catalogo..." value={fq} onChange={e=>setFq(e.target.value)}/>
-        <button className="btn btn-p" onClick={()=>setShow(s=>!s)}>{show?'✕':'+ Nuovo'}</button>
+        <input className="inp" style={{flex:1}} placeholder="Filtra catalogo..." value={fq} onChange={function(e){setFq(e.target.value);}}/>
+        <button className="btn btn-p" onClick={function(){setShow(function(s){return !s;});}}>+ Nuovo</button>
       </div>
-
       {show && (
         <div className="card" style={{marginBottom:12}}>
-          <div className="card-title">➕ Aggiungi alimento</div>
-          <div className="ig">
-            <label className="lbl">Nome *</label>
-            <input className="inp" placeholder="es. Kimchi" value={nf.nome} onChange={e=>setNf(p=>({...p,nome:e.target.value}))}/>
+          <div className="card-title">Aggiungi alimento</div>
+          <div className="ig"><label className="lbl">Nome *</label>
+            <input className="inp" value={nf.nome} onChange={function(e){setNf(function(p){return Object.assign({},p,{nome:e.target.value});});}}/>
           </div>
           <div className="row2">
-            <div className="ig">
-              <label className="lbl">Emoji</label>
-              <input className="inp" placeholder="🥗" value={nf.em} onChange={e=>setNf(p=>({...p,em:e.target.value}))}/>
+            <div className="ig"><label className="lbl">Emoji</label>
+              <input className="inp" value={nf.em} onChange={function(e){setNf(function(p){return Object.assign({},p,{em:e.target.value});});}}/>
             </div>
-            <div className="ig">
-              <label className="lbl">Categoria *</label>
-              <input className="inp" list="cat-list" placeholder="Verdure" value={nf.cat} onChange={e=>setNf(p=>({...p,cat:e.target.value}))}/>
-              <datalist id="cat-list">{CATS.map(c=><option key={c} value={c}/>)}</datalist>
+            <div className="ig"><label className="lbl">Categoria *</label>
+              <input className="inp" list="cat-list" value={nf.cat} onChange={function(e){setNf(function(p){return Object.assign({},p,{cat:e.target.value});});}}/>
+              <datalist id="cat-list">{CATS.map(function(c){return <option key={c} value={c}/>;})}</datalist>
             </div>
           </div>
-          <div className="ig">
-            <label className="lbl">Sottocategoria</label>
-            <input className="inp" placeholder="Fermentati" value={nf.sub} onChange={e=>setNf(p=>({...p,sub:e.target.value}))}/>
+          <div className="ig"><label className="lbl">Sottocategoria</label>
+            <input className="inp" value={nf.sub} onChange={function(e){setNf(function(p){return Object.assign({},p,{sub:e.target.value});});}}/>
           </div>
-          <div className="ig">
-            <label className="lbl">Tag (separati da virgola)</label>
-            <input className="inp" placeholder="piccante, fermentato, vegetale" value={nf.tags} onChange={e=>setNf(p=>({...p,tags:e.target.value}))}/>
+          <div className="ig"><label className="lbl">Tag (virgola)</label>
+            <input className="inp" value={nf.tags} onChange={function(e){setNf(function(p){return Object.assign({},p,{tags:e.target.value});});}}/>
           </div>
-          <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>
-            {saving?'Salvataggio...':'Salva nel catalogo'}
-          </button>
+          <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>{saving?'Salvataggio...':'Salva'}</button>
         </div>
       )}
-
-      {Object.entries(grouped).map(([cat,foods])=>(
-        <div key={cat} style={{marginBottom:8}}>
-          <div className="cat-hdr" onClick={()=>setOpen(p=>({...p,[cat]:!p[cat]}))}>
-            <span className="cat-hdr-name">{cat}</span>
-            <span className="cat-hdr-cnt">{foods.length}</span>
-            <span style={{color:'var(--text3)',fontSize:11}}>{open[cat]?'▲':'▼'}</span>
-          </div>
-          {open[cat] && (
-            <div className="cat-items">
-              {foods.map(f=>(
-                <div key={f.id} className="cat-food">
-                  <span className="cat-food-em">{f.em}</span>
-                  <div style={{flex:1}}>
-                    <div className="cat-food-name">
-                      {f.nome}
-                      {f.custom&&<span className="badge badge-g" style={{marginLeft:5}}>custom</span>}
-                    </div>
-                    <div className="cat-food-sub">
-                      {f.sub}{f.tags&&f.tags.length>0?` · ${f.tags.slice(0,4).join(', ')}${f.tags.length>4?'...':''}` :''}
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {Object.entries(grouped).map(function(entry){
+        var cat=entry[0], foods=entry[1];
+        return (
+          <div key={cat} style={{marginBottom:8}}>
+            <div className="cat-hdr" onClick={function(){setOpen(function(p){var n=Object.assign({},p);n[cat]=!n[cat];return n;});}}>
+              <span className="cat-hdr-name">{CAT_ICONS[cat]||'🍽️'} {cat}</span>
+              <span className="cat-hdr-cnt">{foods.length}</span>
+              <span style={{color:'var(--tx3)',fontSize:11}}>{open[cat]?'▲':'▼'}</span>
             </div>
-          )}
-        </div>
-      ))}
+            {open[cat] && (
+              <div className="cat-items">
+                {foods.map(function(f){
+                  return (
+                    <div key={f.id} className="cat-food">
+                      <span className="cat-food-em">{f.em}</span>
+                      <div style={{flex:1}}>
+                        <div className="cat-food-name">{f.nome}{f.custom?<span className="badge badge-g" style={{marginLeft:5}}>custom</span>:null}</div>
+                        <div className="cat-food-sub">{f.sub}{f.tags&&f.tags.length?' · '+f.tags.slice(0,3).join(', '):''}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/* ============================================================
-   TOAST
-============================================================ */
-function Toast({msg}) { return msg ? <div className="toast">{msg}</div> : null; }
+// APP
+function Toast(props){ return props.msg ? <div className="toast">{props.msg}</div> : null; }
 
-/* ============================================================
-   APP ROOT
-============================================================ */
-function App() {
-  const [user, setUser]   = useState(null);
-  const [authOk,setAuthOk] = useState(false);
-  const [tab,   setTab]   = useState('add');
-  const [toast, setToast] = useState('');
-  const [custom,setCustom] = useState([]);
+function App(){
+  var userS=useState(null), user=userS[0], setUser=userS[1];
+  var authS=useState(false), authOk=authS[0], setAuthOk=authS[1];
+  var tabS=useState('add'), tab=tabS[0], setTab=tabS[1];
+  var toastS=useState(''), toast=toastS[0], setToast=toastS[1];
+  var customS=useState([]), custom=customS[0], setCustom=customS[1];
 
-  useEffect(()=>{
-    return auth.onAuthStateChanged(u=>{
+  useEffect(function(){
+    return auth.onAuthStateChanged(function(u){
       setUser(u); setAuthOk(true);
       if(u) getCustomFoods(u.uid).then(setCustom);
     });
   },[]);
 
-  function showToast(msg){ setToast(msg); setTimeout(()=>setToast(''),2800); }
-
-  const allFoods = useMemo(()=>[...FOODS,...custom],[custom]);
+  function showToast(msg){ setToast(msg); setTimeout(function(){setToast('');},2800); }
+  var allFoods=useMemo(function(){return FOODS.concat(custom);}, [custom]);
 
   if(!authOk) return <div className="loading-full"><div className="spinner"/></div>;
 
@@ -1611,8 +1243,8 @@ function App() {
     <div className="login">
       <div className="login-logo">🍽️</div>
       <div className="login-title">FoodJournal</div>
-      <div className="login-sub">Il tuo diario alimentare personale.<br/>Non conta le calorie — racconta <em>cosa mangi</em>.</div>
-      <button className="login-btn" onClick={()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}>
+      <div className="login-sub">Il tuo diario alimentare personale. Non conta le calorie — racconta cosa mangi.</div>
+      <button className="login-btn" onClick={function(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}}>
         <svg width="18" height="18" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -1624,72 +1256,47 @@ function App() {
     </div>
   );
 
-  const TABS = [
-    {id:'add',   ic:'✏️', lb:'Aggiungi'},
-    {id:'diary', ic:'📔', lb:'Diario'},
-    {id:'stats', ic:'📊', lb:'Statistiche'},
-    {id:'cat',   ic:'🗂️', lb:'Catalogo'},
-  ];
+  var TABS=[{id:'add',ic:'✏️',lb:'Aggiungi'},{id:'diary',ic:'📔',lb:'Diario'},{id:'stats',ic:'📊',lb:'Statistiche'},{id:'cat',ic:'🗂️',lb:'Catalogo'}];
 
   return (
-    <>
+    <React.Fragment>
       <div className="hdr">
         <div>
           <div className="hdr-title">FoodJournal</div>
           <div className="hdr-sub">diario alimentare personale</div>
         </div>
-        <div className="avatar" onClick={()=>confirm('Esci dall\'account?')&&auth.signOut()} title="Esci">
-          {user.photoURL ? <img src={user.photoURL} alt=""/> : user.displayName?.charAt(0)||'U'}
+        <div className="avatar" onClick={function(){if(window.confirm('Esci?'))auth.signOut();}}>
+          {user.photoURL ? <img src={user.photoURL} alt=""/> : (user.displayName?user.displayName.charAt(0):'U')}
         </div>
       </div>
-
       <div className="content">
-        {tab==='add'   && <AddMeal uid={user.uid} allFoods={allFoods} onSaved={showToast}/>}
-        {tab==='diary' && <Diary uid={user.uid}/>}
-        {tab==='stats' && <Stats uid={user.uid} allFoods={allFoods}/>}
-        {tab==='cat'   && <Catalog uid={user.uid} custom={custom} onAdded={f=>setCustom(p=>[...p,f])}/>}
+        {tab==='add'   ? <AddMeal uid={user.uid} allFoods={allFoods} onSaved={showToast}/> : null}
+        {tab==='diary' ? <Diary uid={user.uid}/> : null}
+        {tab==='stats' ? <Stats uid={user.uid} allFoods={allFoods}/> : null}
+        {tab==='cat'   ? <Catalog uid={user.uid} custom={custom} onAdded={function(f){setCustom(function(p){return p.concat([f]);});}} /> : null}
         <div style={{height:14}}/>
       </div>
-
       <div className="tabs">
-        {TABS.map(t=>(
-          <button key={t.id} className={`tab ${tab===t.id?'on':''}`} onClick={()=>setTab(t.id)}>
-            <span className="tab-ic">{t.ic}</span>
-            <span className="tab-lb">{t.lb}</span>
-          </button>
-        ))}
+        {TABS.map(function(t){
+          return (
+            <button key={t.id} className={'tab'+(tab===t.id?' on':'')} onClick={function(){setTab(t.id);}}>
+              <span className="tab-ic">{t.ic}</span>
+              <span className="tab-lb">{t.lb}</span>
+            </button>
+          );
+        })}
       </div>
-
       <Toast msg={toast}/>
-    </>
+    </React.Fragment>
   );
 }
 
-class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = {err:null}; }
-  static getDerivedStateFromError(e) { return {err:e}; }
-  render() {
-    if(this.state.err) return (
-      <div style={{padding:24,color:'#f0ede4',fontFamily:'monospace',fontSize:12,background:'#1a1a17',minHeight:'100dvh'}}>
-        <div style={{color:'#e87a7a',fontSize:16,marginBottom:12}}>❌ Errore runtime</div>
-        <div style={{color:'#e8a84c',marginBottom:8}}>{this.state.err.message}</div>
-        <pre style={{color:'#a8a49a',fontSize:10,whiteSpace:'pre-wrap'}}>{this.state.err.stack}</pre>
-      </div>
-    );
-    return this.props.children;
-  }
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <ErrorBoundary><App/></ErrorBoundary>
-);
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
 </script>
-
-<!-- SERVICE WORKER REGISTRATION -->
 <script>
-  if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  }
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
 </script>
 </body>
 </html>
