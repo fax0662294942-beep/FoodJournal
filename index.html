@@ -170,6 +170,15 @@ textarea.inp{resize:none;height:66px;}
 .tipo-card-ic{font-size:20px;margin-bottom:4px;}
 .tipo-card-name{font-size:11px;font-weight:600;color:var(--tx2);line-height:1.3;}
 .tipo-card.on .tipo-card-name{color:var(--ac);}
+.wt-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;}
+.wt-tag{padding:4px 10px;border-radius:20px;font-size:12px;background:var(--sf2);border:1px solid var(--bd);color:var(--tx2);cursor:pointer;transition:all .15s;}
+.wt-tag.on{background:var(--acd);border-color:var(--ac);color:var(--ac);font-weight:600;}
+.wt-hist{display:flex;flex-direction:column;gap:6px;}
+.wt-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--sf2);border-radius:var(--rs);border:1px solid var(--bd);}
+.wt-peso{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--ac);min-width:60px;}
+.wt-info{flex:1;min-width:0;}
+.wt-date{font-size:12px;color:var(--tx2);}
+.wt-meta{font-size:10px;color:var(--tx3);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -371,6 +380,14 @@ function saveMeal(uid,data){
   return db.collection('foodDiary_logs').add(Object.assign({},data,{userId:uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()}));
 }
 function delMeal(id){ return db.collection('foodDiary_logs').doc(id).delete(); }
+function saveWeight(uid,data){
+  return db.collection('foodDiary_weights').add(Object.assign({},data,{userId:uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()}));
+}
+function getWeights(uid,start,end){
+  return db.collection('foodDiary_weights').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','asc').get()
+    .then(function(s){return s.docs.map(function(d){return Object.assign({id:d.id},d.data());});});
+}
+function delWeight(id){return db.collection('foodDiary_weights').doc(id).delete();}
 function getLogs(uid,start,end){
   return db.collection('foodDiary_logs').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','desc').get()
     .then(function(s){ return s.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }); });
@@ -782,6 +799,8 @@ function Stats(props){
   var tlS=useState(false), topLoad=tlS[0], setTopLoad=tlS[1];
   var dietS=useState(null), diet=dietS[0], setDiet=dietS[1];
   var dlS=useState(false), dietLoad=dlS[0], setDietLoad=dlS[1];
+  var wS=useState([]), weights=wS[0], setWeights=wS[1];
+  var wlS=useState(false), wLoad=wlS[0], setWLoad=wlS[1];
   var ddRef=useRef();
   var swipeRef=useRef({});
 
@@ -935,8 +954,8 @@ function Stats(props){
       logs.forEach(function(l){
         (l.alimenti||[]).forEach(function(a){
           r.tot++;
-          if(a.glutenFree)r.gf++;
-          if(a.lactoseFree)r.lf++;
+          if(a.gluten && !a.glutenFree)r.gf++;
+          if(a.lactose && !a.lactoseFree)r.lf++;
           if(a.fodmap==='low')r.fl++;
           if(a.fodmap==='med')r.fm++;
           if(a.fodmap==='high')r.fh++;
@@ -949,10 +968,16 @@ function Stats(props){
     }).catch(function(){setDiet(null);}).finally(function(){setDietLoad(false);});
   }
 
+  function loadWeights(){
+    setWLoad(true);
+    var d=getDates();
+    getWeights(uid,d.start,d.end).then(function(data){setWeights(data);}).catch(function(){setWeights([]);}).finally(function(){setWLoad(false);});
+  }
+
   useEffect(function(){
-    if(mode==='top'){loadTop();setDiet(null);}
-    else if(mode==='diet'){loadDiet();setTop([]);}
-    else{setTop([]);setDiet(null);}
+    if(mode==='top'){loadTop();setDiet(null);setWeights([]);}
+    else if(mode==='diet'){loadDiet();loadWeights();setTop([]);}
+    else{setTop([]);setDiet(null);setWeights([]);}
   },[mode,periodMode,periodOffset]);
 
   var CL={low:'fb-low',med:'fb-med',high:'fb-high'};
@@ -1136,8 +1161,8 @@ function Stats(props){
             <div className="card-title">Analisi dieta — {getPeriodLabel()}</div>
             <div style={{fontSize:12,color:'var(--tx3)',marginBottom:12}}>{diet.meals} pasti · {diet.tot} alimenti</div>
             <div className="ds-grid">
-              <div className="ds-card"><div className="ds-ic">🌾</div><div className="ds-num" style={{color:'var(--ac)'}}>{diet.gf}</div><div className="ds-lbl">senza glutine</div></div>
-              <div className="ds-card"><div className="ds-ic">🥛</div><div className="ds-num" style={{color:'var(--ac)'}}>{diet.lf}</div><div className="ds-lbl">senza lattosio</div></div>
+              <div className="ds-card"><div className="ds-ic">🌾</div><div className="ds-num" style={{color:'var(--ac)'}}>{diet.gf}</div><div className="ds-lbl">alimenti con glutine</div></div>
+              <div className="ds-card"><div className="ds-ic">🥛</div><div className="ds-num" style={{color:'var(--ac)'}}>{diet.lf}</div><div className="ds-lbl">alimenti con lattosio</div></div>
             </div>
             <div className="lbl" style={{marginBottom:6}}>FODMAP</div>
             {diet.tot>0 && (
@@ -1170,8 +1195,208 @@ function Stats(props){
                 </div>
               </div>
             )}
+            {weights.length > 0 && (
+              <div>
+                <div className="divider"/>
+                <div className="lbl" style={{marginBottom:6,marginTop:8}}>Peso nel periodo</div>
+                {wLoad ? <div className="spin-wrap"><div className="spinner"/></div> : <WeightChart data={weights}/>}
+              </div>
+            )}
           </div>
         )
+      )}
+    </div>
+  );
+}
+
+// WEIGHT CHART
+function WeightChart(props) {
+  var data = props.data || [];
+  if(data.length === 0) return (
+    <div className="empty" style={{padding:'16px 0'}}>
+      <div className="empty-ic" style={{fontSize:24}}>⚖️</div>
+      <div className="empty-tx">Nessuna pesata in questo periodo.</div>
+    </div>
+  );
+  var sorted = data.slice().sort(function(a,b){
+    var da=a.data&&a.data.toDate?a.data.toDate():new Date(a.data);
+    var db=b.data&&b.data.toDate?b.data.toDate():new Date(b.data);
+    return da-db;
+  });
+  var pesos = sorted.map(function(d){return d.peso;});
+  var minP = Math.min.apply(null,pesos);
+  var maxP = Math.max.apply(null,pesos);
+  var pad = Math.max((maxP-minP)*0.15, 0.5);
+  minP = minP-pad; maxP = maxP+pad;
+  var range = maxP-minP;
+  var W=300, H=110, PX=6, PY=20;
+  var iW=W-PX*2, iH=H-PY*2;
+  function toX(i){return PX+(sorted.length===1?iW/2:i/(sorted.length-1)*iW);}
+  function toY(p){return PY+iH-((p-minP)/range*iH);}
+  var pts=sorted.map(function(d,i){return toX(i)+','+toY(d.peso);}).join(' ');
+  var areaPts=toX(0)+','+(H-2)+' '+pts+' '+toX(sorted.length-1)+','+(H-2);
+  return (
+    <svg viewBox={'0 0 '+W+' '+H} style={{width:'100%',height:130,display:'block'}}>
+      <defs>
+        <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e8a84c" stopOpacity="0.25"/>
+          <stop offset="100%" stopColor="#e8a84c" stopOpacity="0.02"/>
+        </linearGradient>
+      </defs>
+      <polygon points={areaPts} fill="url(#wg)"/>
+      <polyline points={pts} fill="none" stroke="#e8a84c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      {sorted.map(function(d,i){
+        var x=toX(i), y=toY(d.peso);
+        var dt=d.data&&d.data.toDate?d.data.toDate():new Date(d.data);
+        var showLbl=sorted.length<=8||i===0||i===sorted.length-1;
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r="3.5" fill="#e8a84c" stroke="#1a1a17" strokeWidth="1.5"/>
+            {showLbl && <text x={x} y={y-7} textAnchor="middle" fontSize="8" fill="#e8a84c" fontWeight="700">{d.peso.toFixed(1)}</text>}
+            {showLbl && <text x={x} y={H-3} textAnchor="middle" fontSize="7" fill="#5e5a52">{(dt.getDate())+'/'+(dt.getMonth()+1)}</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// WEIGHT TAB
+function WeightTab(props) {
+  var uid = props.uid;
+  var today = toDateStr(new Date());
+  var dS=useState(today), date=dS[0], setDate=dS[1];
+  var pS=useState(''), pesoStr=pS[0], setPesoStr=pS[1];
+  var tS=useState([]), tags=tS[0], setTags=tS[1];
+  var nS=useState(''), nota=nS[0], setNota=nS[1];
+  var svS=useState(false), saving=svS[0], setSaving=svS[1];
+  var hS=useState([]), history=hS[0], setHistory=hS[1];
+  var hlS=useState(true), histLoading=hlS[0], setHistLoading=hlS[1];
+  var rS=useState(30), chartRange=rS[0], setChartRange=rS[1];
+  var WTAGS=['a digiuno','mattina','sera','dopo colazione','dopo pranzo','dopo cena','dopo palestra','gonfiore'];
+
+  useEffect(function(){loadHistory();}, [chartRange]);
+
+  function loadHistory(){
+    setHistLoading(true);
+    var start=new Date(); start.setDate(start.getDate()-chartRange); start.setHours(0,0,0,0);
+    var end=new Date(); end.setHours(23,59,59,999);
+    getWeights(uid,start,end).then(function(data){setHistory(data);}).catch(function(){setHistory([]);}).finally(function(){setHistLoading(false);});
+  }
+
+  function toggleTag(t){
+    setTags(function(prev){return prev.indexOf(t)>=0?prev.filter(function(x){return x!==t;}):prev.concat([t]);});
+  }
+
+  function save(){
+    var p=parseFloat(pesoStr.replace(',','.'));
+    if(!p||isNaN(p)||p<20||p>300) return;
+    setSaving(true);
+    saveWeight(uid,{data:dayStart(date),peso:p,tags:tags,nota:nota.trim()})
+      .then(function(){setPesoStr('');setTags([]);setNota('');loadHistory();})
+      .catch(function(e){console.error(e);})
+      .finally(function(){setSaving(false);});
+  }
+
+  var chartData = history.slice().sort(function(a,b){
+    var da=a.data&&a.data.toDate?a.data.toDate():new Date(a.data);
+    var db=b.data&&b.data.toDate?b.data.toDate():new Date(b.data);
+    return da-db;
+  });
+
+  var today_dt = new Date(); today_dt.setHours(0,0,0,0);
+  var lastW = null;
+  history.forEach(function(w){
+    var dt=w.data&&w.data.toDate?w.data.toDate():new Date(w.data);
+    dt.setHours(0,0,0,0);
+    if(dt.getTime()===today_dt.getTime()) lastW=w;
+  });
+  var oldest = chartData.length>0?chartData[0]:null;
+  var newest = chartData.length>0?chartData[chartData.length-1]:null;
+  var diff = (oldest&&newest&&oldest.id!==newest.id) ? newest.peso-oldest.peso : null;
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">⚖️ Andamento peso</div>
+        {lastW && (
+          <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10}}>
+            <span style={{fontFamily:'Playfair Display',fontWeight:700,fontSize:36,color:'var(--ac)'}}>{lastW.peso.toFixed(1)}</span>
+            <span style={{fontSize:13,color:'var(--tx3)'}}>kg oggi</span>
+            {diff!==null && (
+              <span style={{fontSize:13,color:diff>0?'var(--rd)':'var(--gn)',marginLeft:4}}>
+                {diff>0?'+':''}{diff.toFixed(1)} kg ({chartRange}g)
+              </span>
+            )}
+          </div>
+        )}
+        <div className="pills" style={{marginBottom:8}}>
+          {[7,14,30,90].map(function(r){
+            return <div key={r} className={'pill'+(chartRange===r?' on':'')} onClick={function(){setChartRange(r);}}>{'Ultimi '+r+'g'}</div>;
+          })}
+        </div>
+        {histLoading ? <div className="spin-wrap"><div className="spinner"/></div> : <WeightChart data={chartData}/>}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Registra pesata</div>
+        <div className="ig">
+          <label className="lbl">Data</label>
+          <input type="date" className="inp" value={date} max={today} onChange={function(e){setDate(e.target.value);}}/>
+        </div>
+        <div className="ig">
+          <label className="lbl">Peso (kg)</label>
+          <input type="number" className="inp" placeholder="es. 72.5" step="0.1" min="20" max="300" value={pesoStr}
+            onChange={function(e){setPesoStr(e.target.value);}}/>
+        </div>
+        <div className="ig">
+          <div className="lbl" style={{marginBottom:6}}>Tag</div>
+          <div className="wt-tags">
+            {WTAGS.map(function(t){
+              return <span key={t} className={'wt-tag'+(tags.indexOf(t)>=0?' on':'')} onClick={function(){toggleTag(t);}}>{t}</span>;
+            })}
+          </div>
+        </div>
+        <div className="ig">
+          <label className="lbl">Nota (opzionale)</label>
+          <textarea className="inp" placeholder="Come ti senti, condizioni particolari..." value={nota} onChange={function(e){setNota(e.target.value);}}/>
+        </div>
+        <button className="btn btn-p btn-full" onClick={save}
+          disabled={saving||!pesoStr||isNaN(parseFloat(pesoStr.replace(',','.')))||parseFloat(pesoStr.replace(',','.'))<20}>
+          {saving?'Salvataggio...':'Salva pesata'}
+        </button>
+      </div>
+
+      {history.length>0 && (
+        <div className="card">
+          <div className="card-title">Storico</div>
+          <div className="wt-hist">
+            {history.slice().sort(function(a,b){
+              var da=a.data&&a.data.toDate?a.data.toDate():new Date(a.data);
+              var db=b.data&&b.data.toDate?b.data.toDate():new Date(b.data);
+              return db-da;
+            }).map(function(w){
+              var dt=w.data&&w.data.toDate?w.data.toDate():new Date(w.data);
+              return (
+                <div key={w.id} className="wt-row">
+                  <span className="wt-peso">{w.peso.toFixed(1)} kg</span>
+                  <div className="wt-info">
+                    <div className="wt-date">{fmtDate(dt)}</div>
+                    {(w.tags&&w.tags.length||w.nota) ? (
+                      <div className="wt-meta">
+                        {w.tags&&w.tags.length?w.tags.join(' · '):''}
+                        {w.nota?(w.tags&&w.tags.length?' — ':'')+w.nota:''}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button className="ico-btn" onClick={function(){
+                    delWeight(w.id).then(function(){setHistory(function(p){return p.filter(function(x){return x.id!==w.id;});});});
+                  }}>🗑️</button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1313,7 +1538,7 @@ function App(){
     </div>
   );
 
-  var TABS=[{id:'add',ic:'✏️',lb:'Aggiungi'},{id:'diary',ic:'📔',lb:'Diario'},{id:'stats',ic:'📊',lb:'Statistiche'},{id:'cat',ic:'🗂️',lb:'Catalogo'}];
+  var TABS=[{id:'add',ic:'✏️',lb:'Aggiungi'},{id:'diary',ic:'📔',lb:'Diario'},{id:'stats',ic:'📊',lb:'Statistiche'},{id:'peso',ic:'⚖️',lb:'Peso'},{id:'cat',ic:'🗂️',lb:'Catalogo'}];
 
   return (
     <React.Fragment>
@@ -1330,6 +1555,7 @@ function App(){
         {tab==='add'   ? <AddMeal uid={user.uid} allFoods={allFoods} onSaved={showToast}/> : null}
         {tab==='diary' ? <Diary uid={user.uid}/> : null}
         {tab==='stats' ? <Stats uid={user.uid} allFoods={allFoods}/> : null}
+        {tab==='peso'  ? <WeightTab uid={user.uid}/> : null}
         {tab==='cat'   ? <Catalog uid={user.uid} custom={custom} onAdded={function(f){setCustom(function(p){return p.concat([f]);});}} /> : null}
         <div style={{height:14}}/>
       </div>
