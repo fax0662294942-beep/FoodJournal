@@ -1054,41 +1054,99 @@ function Stats(props){
             {showDd && fdResults.length>0 && (
               <div className="fs-dd">
                 {fdResults.map(function(f){
-                  return <div key={f.id} className="fs-item" onClick={function(){setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);}}>
+                  return <div key={f.id} className="fs-item" onClick={function(){
+                    setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);
+                    // Esegui subito
+                    var dates=getDates();
+                    setLoading(true);
+                    if(mode==='count'){
+                      getLogs(uid,dates.start,dates.end).then(function(logs){
+                        var count=0;
+                        logs.forEach(function(l){
+                          var hit=false;
+                          (l.alimenti||[]).forEach(function(a){if(a.foodId===f.id||a.nome.toLowerCase()===f.nome.toLowerCase())hit=true;});
+                          if(hit)count++;
+                        });
+                        setRes({type:'count',count:count,label:f.nome,em:f.em,period:getPeriodLabel()});
+                      }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
+                    } else {
+                      db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get()
+                        .then(function(s){
+                          var logs=s.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+                          var found=null;
+                          for(var i=0;i<logs.length;i++){
+                            var hit=false;
+                            (logs[i].alimenti||[]).forEach(function(a){if(a.foodId===f.id||a.nome.toLowerCase()===f.nome.toLowerCase())hit=true;});
+                            if(hit){found=logs[i];break;}
+                          }
+                          if(found){
+                            var dt=found.data&&found.data.toDate?found.data.toDate():new Date(found.data);
+                            setRes({type:'last',label:f.nome,em:f.em,date:dt,days:daysAgo(dt),tipoPasto:found.tipoPasto,nota:found.nota});
+                          } else {
+                            setRes({type:'last',label:f.nome,em:f.em,date:null});
+                          }
+                        }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
+                    }
+                  }}>
                     <span>{f.em} {f.nome}</span><span className="fs-cat">{f.cat}</span>
                   </div>;
                 })}
               </div>
             )}
           </div>
-          {selFood && (
-            <div style={{marginTop:10}}>
-              <button className="btn btn-p btn-full" onClick={mode==='count'?doCount:doLast} disabled={loading}>
-                {loading?'Ricerca...':(mode==='count'?'Conta "'+selFood.nome+'" — '+getPeriodLabel():'Ultima: "'+selFood.nome+'"')}
-              </button>
-            </div>
-          )}
+          {loading && <div className="spin-wrap" style={{padding:12}}><div className="spinner"/></div>}
+          {!loading && !selFood && <div style={{fontSize:12,color:'var(--tx3)',marginTop:8,textAlign:'center'}}>Scrivi il nome e tocca un alimento → risultato immediato</div>}
         </div>
       )}
 
       {(mode==='count'||mode==='last') && subMode==='tipo' && (
         <div className="card">
-          <div className="lbl" style={{marginBottom:9}}>Seleziona tipologia</div>
+          <div className="lbl" style={{marginBottom:9}}>Tocca una tipologia → risultato immediato</div>
           <div className="tipo-grid">
             {TIPOLOGIE.map(function(t){
               return (
-                <div key={t.id} className={'tipo-card'+(selTipo===t.id?' on':'')} onClick={function(){setSelTipo(t.id);setRes(null);}}>
+                <div key={t.id} className={'tipo-card'+(selTipo===t.id?' on':'')} onClick={function(){
+                  setSelTipo(t.id);setRes(null);
+                  var dates=getDates();
+                  setLoading(true);
+                  if(mode==='count'){
+                    getLogs(uid,dates.start,dates.end).then(function(logs){
+                      var count=0,porzioni=0;
+                      logs.forEach(function(l){
+                        var match=0;
+                        (l.alimenti||[]).forEach(function(a){if(matchTipo(t.id,a))match++;});
+                        if(match>0){count++;porzioni+=match;}
+                      });
+                      setRes({type:'count_tipo',tipo:t,count:count,porzioni:porzioni,period:getPeriodLabel()});
+                    }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
+                  } else {
+                    db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get()
+                      .then(function(s){
+                        var logs=s.docs.map(function(d){return Object.assign({id:d.id},d.data());});
+                        var found=null;
+                        for(var i=0;i<logs.length;i++){
+                          var hit=false;
+                          (logs[i].alimenti||[]).forEach(function(a){if(matchTipo(t.id,a))hit=true;});
+                          if(hit){found=logs[i];break;}
+                        }
+                        if(found){
+                          var dt=found.data&&found.data.toDate?found.data.toDate():new Date(found.data);
+                          var esempi=[];
+                          (found.alimenti||[]).forEach(function(a){if(matchTipo(t.id,a)&&esempi.length<3)esempi.push(a.nome);});
+                          setRes({type:'last_tipo',tipo:t,date:dt,days:daysAgo(dt),esempi:esempi,tipoPasto:found.tipoPasto});
+                        } else {
+                          setRes({type:'last_tipo',tipo:t,date:null,days:null});
+                        }
+                      }).catch(function(e){setRes({type:'err',msg:e.message});}).finally(function(){setLoading(false);});
+                  }
+                }}>
                   <div className="tipo-card-ic">{t.ic}</div>
                   <div className="tipo-card-name">{t.lbl}</div>
                 </div>
               );
             })}
           </div>
-          {selTipo && (
-            <button className="btn btn-p btn-full" onClick={mode==='count'?doCountTipo:doLastTipo} disabled={loading}>
-              {loading?'Ricerca...':(mode==='count'?'Conta '+TIPO_MAP[selTipo].lbl+' — '+getPeriodLabel():'Ultima: '+TIPO_MAP[selTipo].lbl)}
-            </button>
-          )}
+          {loading && <div className="spin-wrap" style={{padding:12}}><div className="spinner"/></div>}
         </div>
       )}
 
