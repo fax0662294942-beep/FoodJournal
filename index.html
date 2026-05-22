@@ -785,7 +785,7 @@ function Diary(props){
 // STATS
 function Stats(props){
   var uid=props.uid, allFoods=props.allFoods;
-  var modeS=useState('count'), mode=modeS[0], setMode=modeS[1];
+  var modeS=useState('diet'), mode=modeS[0], setMode=modeS[1];
   var smS=useState('food'), subMode=smS[0], setSubMode=smS[1];
   var qS=useState(''), q=qS[0], setQ=qS[1];
   var ddS=useState(false), showDd=ddS[0], setShowDd=ddS[1];
@@ -992,7 +992,7 @@ function Stats(props){
   return (
     <div>
       <div className="pills">
-        {[{id:'count',lbl:'Conta'},{id:'last',lbl:'Ultima'},{id:'top',lbl:'Top'},{id:'diet',lbl:'Dieta'}].map(function(m){
+        {[{id:'diet',lbl:'Dieta'},{id:'top',lbl:'Top'},{id:'count',lbl:'Conta'},{id:'last',lbl:'Ultima'}].map(function(m){
           return <div key={m.id} className={'pill'+(mode===m.id?' on':'')} onClick={function(){setMode(m.id);setRes(null);}}>{m.lbl}</div>;
         })}
       </div>
