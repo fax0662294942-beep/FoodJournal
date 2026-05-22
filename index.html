@@ -254,6 +254,18 @@
     .fodmap-legend{display:flex;gap:10px;flex-wrap:wrap;}
     .fodmap-leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);}
     .fodmap-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+    /* TIPO GRID (statistiche per tipologia) */
+    .tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:4px;}
+    .tipo-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 10px;cursor:pointer;transition:all .15s;}
+    .tipo-card:hover{border-color:var(--accent);}
+    .tipo-card.on{background:var(--accent-dim);border-color:var(--accent);}
+    .tipo-card-ic{font-size:20px;margin-bottom:4px;}
+    .tipo-card-name{font-size:11px;font-weight:600;color:var(--text2);line-height:1.3;}
+    .tipo-card.on .tipo-card-name{color:var(--accent);}
+    .tipo-card-badge{display:inline-block;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:700;margin-top:3px;}
+    .stat-days{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:var(--accent);line-height:1;}
+    .stat-days-unit{font-size:13px;color:var(--text2);margin-top:3px;}
   </style>
 </head>
 <body>
@@ -914,21 +926,444 @@ function Diary({uid}) {
 /* ============================================================
    STATS
 ============================================================ */
+
+// Definizione tipologie filtrabili
+const TIPOLOGIE = [
+  {id:'gluten',      lbl:'Con glutine',      ic:'🌾', color:'#c8943c', match: a => a.gluten && !a.glutenFree},
+  {id:'no_gluten',   lbl:'Senza glutine',    ic:'✅', color:'#7ab87a', match: a => !a.gluten || a.glutenFree},
+  {id:'lactose',     lbl:'Con lattosio',     ic:'🥛', color:'#9090bb', match: a => a.lactose && !a.lactoseFree},
+  {id:'no_lactose',  lbl:'Senza lattosio',   ic:'✅', color:'#7ab87a', match: a => !a.lactose || a.lactoseFree},
+  {id:'fodmap_low',  lbl:'FODMAP Low',       ic:'🟢', color:'#7ab87a', match: a => a.fodmap==='low'},
+  {id:'fodmap_med',  lbl:'FODMAP Med',       ic:'🟡', color:'#e8a84c', match: a => a.fodmap==='med'},
+  {id:'fodmap_high', lbl:'FODMAP High',      ic:'🔴', color:'#e87a7a', match: a => a.fodmap==='high'},
+  {id:'gi_low',      lbl:'GI Basso',         ic:'🟢', color:'#7ab87a', match: a => a.gi==='low'},
+  {id:'gi_med',      lbl:'GI Medio',         ic:'🟡', color:'#e8a84c', match: a => a.gi==='med'},
+  {id:'gi_high',     lbl:'GI Alto',          ic:'🔴', color:'#e87a7a', match: a => a.gi==='high'},
+  {id:'alcolici',    lbl:'Alcolici',         ic:'🍷', color:'#c87aa8', match: a => a.cat==='Alcolici'},
+  {id:'colazione',   lbl:'Colazione',        ic:'☀️', color:'#e8a84c', match: a => a.cat==='Colazione'},
+  {id:'dolci',       lbl:'Dolci e Snack',    ic:'🍪', color:'#e8a84c', match: a => a.cat==='Dolci e Snack'},
+  {id:'verdure',     lbl:'Verdure',          ic:'🥦', color:'#7ab87a', match: a => a.cat==='Verdure'},
+  {id:'frutta',      lbl:'Frutta',           ic:'🍎', color:'#7ab87a', match: a => a.cat==='Frutta'},
+  {id:'pesce',       lbl:'Pesce',            ic:'🐟', color:'#7ab87a', match: a => a.cat==='Pesce'},
+];
+const TIPO_MAP = Object.fromEntries(TIPOLOGIE.map(t=>[t.id,t]));
+
+function daysAgo(date) {
+  const diff = new Date() - (date instanceof Date ? date : new Date(date));
+  return Math.floor(diff / 86400000);
+}
+
 function Stats({uid, allFoods}) {
-  const [mode, setMode] = useState('count');
-  const [q,    setQ]    = useState('');
-  const [showDd, setShowDd] = useState(false);
+  const [mode, setMode]       = useState('count');
+  const [subMode, setSubMode] = useState('food'); // 'food' | 'tipo'
+  const [q,    setQ]          = useState('');
+  const [showDd, setShowDd]   = useState(false);
   const [selFood, setSelFood] = useState(null);
-  const [period, setPeriod]  = useState('week');
-  const [py, setPy] = useState(new Date().getFullYear());
-  const [pm, setPm] = useState(new Date().getMonth());
-  const [res, setRes]       = useState(null);
+  const [selTipo, setSelTipo] = useState(null);
+  const [period, setPeriod]   = useState('week');
+  const [py, setPy]           = useState(new Date().getFullYear());
+  const [pm, setPm]           = useState(new Date().getMonth());
+  const [res, setRes]         = useState(null);
   const [loading, setLoading] = useState(false);
-  const [top, setTop]       = useState([]);
-  const [topLoad,setTopLoad] = useState(false);
-  const [diet, setDiet]     = useState(null);
-  const [dietLoad,setDietLoad] = useState(false);
+  const [top, setTop]         = useState([]);
+  const [topLoad,setTopLoad]  = useState(false);
+  const [diet, setDiet]       = useState(null);
+  const [dietLoad,setDietLoad]= useState(false);
   const ddRef = useRef();
+
+  useEffect(()=>{
+    function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setShowDd(false);}
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[]);
+
+  const fdResults = useMemo(()=>{
+    if(q.length<2) return [];
+    const lq=q.toLowerCase();
+    return allFoods.filter(f=>f.nome.toLowerCase().includes(lq)).slice(0,10);
+  },[q,allFoods]);
+
+  function getDates() {
+    const now=new Date();
+    if(period==='week')  return {start:weekStart(), end:now};
+    if(period==='month') return {start:monthStart(now.getFullYear(),now.getMonth()), end:now};
+    if(period==='pick')  return {start:monthStart(py,pm), end:monthEnd(py,pm)};
+    return {start:weekStart(),end:now};
+  }
+  function getPeriodLabel() {
+    if(period==='week')  return 'questa settimana';
+    if(period==='month') return MONTHS_L[new Date().getMonth()];
+    if(period==='pick')  return `${MONTHS_L[pm]} ${py}`;
+    return '';
+  }
+
+  // --- PER ALIMENTO ---
+  async function doCount() {
+    if(!selFood) return;
+    setLoading(true);
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      const count=logs.reduce((acc,l)=>{
+        const hit=(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase());
+        return acc+(hit?1:0);
+      },0);
+      setRes({type:'count',count,label:selFood.nome,em:selFood.em,period:getPeriodLabel()});
+    } catch(e) { setRes({type:'error',msg:e.message}); }
+    setLoading(false);
+  }
+
+  async function doLast() {
+    if(!selFood) return;
+    setLoading(true);
+    try {
+      const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
+      const logs=s.docs.map(d=>({id:d.id,...d.data()}));
+      const found=logs.find(l=>(l.alimenti||[]).some(a=>a.foodId===selFood.id||a.nome.toLowerCase()===selFood.nome.toLowerCase()));
+      if(found) {
+        const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
+        setRes({type:'last',label:selFood.nome,em:selFood.em,date:dt,days:daysAgo(dt),tipoPasto:found.tipoPasto,nota:found.nota});
+      } else {
+        setRes({type:'last',label:selFood.nome,em:selFood.em,date:null});
+      }
+    } catch(e) { setRes({type:'error',msg:e.message}); }
+    setLoading(false);
+  }
+
+  // --- PER TIPOLOGIA ---
+  async function doCountTipo() {
+    if(!selTipo) return;
+    setLoading(true);
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      const tipo=TIPO_MAP[selTipo];
+      let count=0, porzioni=0;
+      logs.forEach(l=>{
+        const hit=(l.alimenti||[]).some(a=>tipo.match(a));
+        if(hit) { count++; porzioni+=(l.alimenti||[]).filter(a=>tipo.match(a)).length; }
+      });
+      setRes({type:'count_tipo',tipo,count,porzioni,period:getPeriodLabel()});
+    } catch(e) { setRes({type:'error',msg:e.message}); }
+    setLoading(false);
+  }
+
+  async function doLastTipo() {
+    if(!selTipo) return;
+    setLoading(true);
+    try {
+      const s=await db.collection('foodDiary_logs').where('userId','==',uid).orderBy('data','desc').limit(300).get();
+      const logs=s.docs.map(d=>({id:d.id,...d.data()}));
+      const tipo=TIPO_MAP[selTipo];
+      const found=logs.find(l=>(l.alimenti||[]).some(a=>tipo.match(a)));
+      if(found) {
+        const dt=found.data?.toDate?found.data.toDate():new Date(found.data);
+        const esempi=(found.alimenti||[]).filter(a=>tipo.match(a)).map(a=>a.nome).slice(0,3);
+        setRes({type:'last_tipo',tipo,date:dt,days:daysAgo(dt),esempi,tipoPasto:found.tipoPasto});
+      } else {
+        setRes({type:'last_tipo',tipo,date:null,days:null});
+      }
+    } catch(e) { setRes({type:'error',msg:e.message}); }
+    setLoading(false);
+  }
+
+  async function loadTop() {
+    setTopLoad(true);
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      const cnt={};
+      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
+        const k=a.nome;
+        if(!cnt[k]) cnt[k]={nome:a.nome,em:a.em||'🍽️',cat:a.cat||'',count:0};
+        cnt[k].count++;
+      }));
+      setTop(Object.values(cnt).sort((a,b)=>b.count-a.count).slice(0,12));
+    } catch(e) { console.error('loadTop error:',e); setTop([]); }
+    setTopLoad(false);
+  }
+
+  async function loadDiet() {
+    setDietLoad(true);
+    try {
+      const {start,end}=getDates();
+      const logs=await getLogs(uid,start,end);
+      let gfCount=0, lfCount=0, fodLow=0, fodMed=0, fodHigh=0, giLow=0, giMed=0, giHigh=0, total=0;
+      logs.forEach(l=>(l.alimenti||[]).forEach(a=>{
+        total++;
+        if(a.glutenFree)  gfCount++;
+        if(a.lactoseFree) lfCount++;
+        if(a.fodmap==='low')  fodLow++;
+        if(a.fodmap==='med')  fodMed++;
+        if(a.fodmap==='high') fodHigh++;
+        if(a.gi==='low')  giLow++;
+        if(a.gi==='med')  giMed++;
+        if(a.gi==='high') giHigh++;
+      }));
+      setDiet({gfCount,lfCount,fodLow,fodMed,fodHigh,giLow,giMed,giHigh,total,meals:logs.length});
+    } catch(e) { console.error(e); setDiet(null); }
+    setDietLoad(false);
+  }
+
+  useEffect(()=>{
+    if(mode==='top')  { loadTop(); setDiet(null); }
+    else if(mode==='diet') { loadDiet(); setTop([]); }
+    else { setTop([]); setDiet(null); }
+  },[mode,period,py,pm]);
+
+  const PeriodSelector = () => (
+    <div className="card" style={{marginBottom:11}}>
+      <label className="lbl">Periodo</label>
+      <div className="pills" style={{marginBottom: period==='pick'?9:0}}>
+        <div className={`pill ${period==='week'?'on':''}`}  onClick={()=>setPeriod('week')}>Questa settimana</div>
+        <div className={`pill ${period==='month'?'on':''}`} onClick={()=>setPeriod('month')}>Questo mese</div>
+        <div className={`pill ${period==='pick'?'on':''}`}  onClick={()=>setPeriod('pick')}>Scegli mese</div>
+      </div>
+      {period==='pick' && (
+        <>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y-1)}>◂</button>
+            <span style={{fontFamily:'Playfair Display',fontWeight:600,flex:1,textAlign:'center'}}>{py}</span>
+            <button className="btn btn-s btn-sm" onClick={()=>setPy(y=>y+1)}>▸</button>
+          </div>
+          <div className="mo-grid">
+            {MONTHS_S.map((m,i)=>(
+              <div key={i} className={`mo-btn ${pm===i?'on':''}`} onClick={()=>setPm(i)}>{m}</div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div>
+      {/* TAB PRINCIPALI */}
+      <div className="pills">
+        {[{id:'count',lbl:'🔢 Conta'},{id:'last',lbl:'🕐 Ultima'},{id:'top',lbl:'🏆 Top'},{id:'diet',lbl:'🥗 Dieta'}].map(m=>(
+          <div key={m.id} className={`pill ${mode===m.id?'on':''}`} onClick={()=>{setMode(m.id);setRes(null);}}>
+            {m.lbl}
+          </div>
+        ))}
+      </div>
+
+      {/* PERIODO (non per ultima-alimento) */}
+      {!(mode==='last' && subMode==='food') && (mode==='count'||mode==='last'||mode==='top'||mode==='diet') && <PeriodSelector/>}
+
+      {/* SUB-TOGGLE per Conta e Ultima */}
+      {(mode==='count'||mode==='last') && (
+        <div className="search-mode-toggle" style={{marginBottom:10}}>
+          <button className={`smt-btn ${subMode==='food'?'on':''}`}
+            onClick={()=>{setSubMode('food');setRes(null);setSelTipo(null);}}>
+            🍝 Per alimento
+          </button>
+          <button className={`smt-btn ${subMode==='tipo'?'on':''}`}
+            onClick={()=>{setSubMode('tipo');setRes(null);setSelFood(null);setQ('');}}>
+            🏷️ Per tipologia
+          </button>
+        </div>
+      )}
+
+      {/* CONTA / ULTIMA — PER ALIMENTO */}
+      {(mode==='count'||mode==='last') && subMode==='food' && (
+        <div className="card">
+          <div style={{position:'relative'}} ref={ddRef}>
+            <input className="inp" placeholder="Cerca alimento..."
+              value={q}
+              onChange={e=>{setQ(e.target.value);setShowDd(true);setSelFood(null);setRes(null);}}
+              onFocus={()=>setShowDd(true)}/>
+            {showDd && fdResults.length>0 && (
+              <div className="fs-dd">
+                {fdResults.map(f=>(
+                  <div key={f.id} className="fs-item" onClick={()=>{setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);}}>
+                    <span>{f.em} {f.nome}</span>
+                    <span className="fs-cat">{f.cat}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {selFood && (
+            <div style={{marginTop:10}}>
+              <button className="btn btn-p btn-full" onClick={mode==='count'?doCount:doLast} disabled={loading}>
+                {loading ? 'Ricerca...'
+                  : mode==='count'
+                    ? `Conta "${selFood.nome}" — ${getPeriodLabel()}`
+                    : `Ultima volta: "${selFood.nome}"`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CONTA / ULTIMA — PER TIPOLOGIA */}
+      {(mode==='count'||mode==='last') && subMode==='tipo' && (
+        <div className="card">
+          <label className="lbl" style={{marginBottom:9,display:'block'}}>Seleziona tipologia</label>
+          <div className="tipo-grid">
+            {TIPOLOGIE.map(t=>(
+              <div key={t.id} className={`tipo-card ${selTipo===t.id?'on':''}`}
+                onClick={()=>{setSelTipo(t.id);setRes(null);}}>
+                <div className="tipo-card-ic">{t.ic}</div>
+                <div className="tipo-card-name">{t.lbl}</div>
+              </div>
+            ))}
+          </div>
+          {selTipo && (
+            <div style={{marginTop:10}}>
+              <button className="btn btn-p btn-full"
+                onClick={mode==='count'?doCountTipo:doLastTipo}
+                disabled={loading}>
+                {loading ? 'Ricerca...'
+                  : mode==='count'
+                    ? `Conta "${TIPO_MAP[selTipo].lbl}" — ${getPeriodLabel()}`
+                    : `Ultima volta: "${TIPO_MAP[selTipo].lbl}"`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* RISULTATO — CONTA ALIMENTO */}
+      {res && res.type==='count' && (
+        <div className="stat-card">
+          <div className="stat-qlbl">{res.em} {res.label} — {res.period}</div>
+          <div className="stat-num">{res.count}</div>
+          <div className="stat-unit">{res.count===1?'volta':'volte'}</div>
+        </div>
+      )}
+
+      {/* RISULTATO — CONTA TIPOLOGIA */}
+      {res && res.type==='count_tipo' && (
+        <div className="stat-card">
+          <div className="stat-qlbl">{res.tipo.ic} {res.tipo.lbl} — {res.period}</div>
+          <div className="stat-num">{res.count}</div>
+          <div className="stat-unit">{res.count===1?'pasto':'pasti'} · {res.porzioni} {res.porzioni===1?'porzione':'porzioni'}</div>
+        </div>
+      )}
+
+      {/* RISULTATO — ULTIMA ALIMENTO */}
+      {res && res.type==='last' && (
+        <div className="stat-card">
+          <div className="stat-qlbl">Ultima volta: {res.em} {res.label}</div>
+          {res.date ? (
+            <>
+              <div className="stat-date">{fmtDate(res.date)}</div>
+              <div className="stat-meta">
+                {res.days===0 ? 'Oggi' : res.days===1 ? 'Ieri' : `${res.days} giorni fa`}
+                {res.tipoPasto ? ` · ${MT_MAP[res.tipoPasto]?.ic} ${MT_MAP[res.tipoPasto]?.lbl}` : ''}
+                {res.nota ? ` · "${res.nota}"` : ''}
+              </div>
+            </>
+          ) : (
+            <div style={{color:'var(--text3)',fontSize:14,marginTop:8}}>Mai registrato</div>
+          )}
+        </div>
+      )}
+
+      {/* RISULTATO — ULTIMA TIPOLOGIA */}
+      {res && res.type==='last_tipo' && (
+        <div className="stat-card">
+          <div className="stat-qlbl">
+            {res.tipo.ic} Ultima volta: {res.tipo.lbl}
+          </div>
+          {res.date ? (
+            <>
+              <div className="stat-days">{res.days}</div>
+              <div className="stat-days-unit">{res.days===1?'giorno fa':'giorni fa'}</div>
+              <div className="stat-date" style={{fontSize:15,marginTop:8}}>{fmtDate(res.date)}</div>
+              {res.esempi?.length>0 && (
+                <div className="stat-meta" style={{marginTop:5}}>
+                  {MT_MAP[res.tipoPasto]?.ic} {MT_MAP[res.tipoPasto]?.lbl} · {res.esempi.join(', ')}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{color:'var(--text3)',fontSize:14,marginTop:8}}>
+              Mai registrato nei dati disponibili
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TOP ALIMENTI */}
+      {mode==='top' && (
+        <div className="card">
+          <div className="card-title">🏆 Alimenti più frequenti — {getPeriodLabel()}</div>
+          {topLoad ? (
+            <div className="spin-wrap"><div className="spinner"/></div>
+          ) : top.length===0 ? (
+            <div className="empty"><div className="empty-ic">📊</div><div className="empty-tx">Nessun dato per questo periodo.</div></div>
+          ) : top.map((f,i)=>(
+            <div key={f.nome} className="tf-row">
+              <div className="tf-rank">{i+1}</div>
+              <span style={{fontSize:17}}>{f.em}</span>
+              <div className="tf-name">{f.nome}</div>
+              <div className="tf-track"><div className="tf-fill" style={{width:`${(f.count/top[0].count)*100}%`}}/></div>
+              <div className="tf-cnt">{f.count}×</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* DIETA */}
+      {mode==='diet' && (
+        dietLoad ? <div className="spin-wrap"><div className="spinner"/></div>
+        : !diet ? <div className="empty"><div className="empty-ic">🥗</div><div className="empty-tx">Nessun dato.</div></div>
+        : (
+          <>
+            <div className="card">
+              <div className="card-title">🥗 Analisi dieta — {getPeriodLabel()}</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>{diet.meals} pasti · {diet.total} alimenti registrati</div>
+              <div className="ds-grid">
+                <div className="ds-card">
+                  <div className="ds-ic">🌾</div>
+                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.gfCount}</div>
+                  <div className="ds-lbl">porzioni<br/>senza glutine</div>
+                </div>
+                <div className="ds-card">
+                  <div className="ds-ic">🥛</div>
+                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.lfCount}</div>
+                  <div className="ds-lbl">porzioni<br/>senza lattosio</div>
+                </div>
+              </div>
+              <label className="lbl" style={{marginBottom:8,display:'block'}}>Distribuzione FODMAP</label>
+              {diet.total>0 ? (
+                <>
+                  <div className="fodmap-bar">
+                    <div className="fodmap-seg" style={{width:`${(diet.fodLow/diet.total)*100}%`,background:'#7ab87a'}}/>
+                    <div className="fodmap-seg" style={{width:`${(diet.fodMed/diet.total)*100}%`,background:'#e8a84c'}}/>
+                    <div className="fodmap-seg" style={{width:`${(diet.fodHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
+                  </div>
+                  <div className="fodmap-legend">
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Low: {diet.fodLow} ({Math.round(diet.fodLow/diet.total*100)}%)</div>
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Med: {diet.fodMed} ({Math.round(diet.fodMed/diet.total*100)}%)</div>
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> High: {diet.fodHigh} ({Math.round(diet.fodHigh/diet.total*100)}%)</div>
+                  </div>
+                </>
+              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato FODMAP disponibile</div>}
+              <div className="divider"/>
+              <label className="lbl" style={{marginBottom:8,display:'block',marginTop:8}}>Indice Glicemico</label>
+              {diet.total>0 ? (
+                <>
+                  <div className="fodmap-bar">
+                    <div className="fodmap-seg" style={{width:`${(diet.giLow/diet.total)*100}%`,background:'#7ab87a'}}/>
+                    <div className="fodmap-seg" style={{width:`${(diet.giMed/diet.total)*100}%`,background:'#e8a84c'}}/>
+                    <div className="fodmap-seg" style={{width:`${(diet.giHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
+                  </div>
+                  <div className="fodmap-legend">
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Basso: {diet.giLow} ({Math.round(diet.giLow/diet.total*100)}%)</div>
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Medio: {diet.giMed} ({Math.round(diet.giMed/diet.total*100)}%)</div>
+                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> Alto: {diet.giHigh} ({Math.round(diet.giHigh/diet.total*100)}%)</div>
+                  </div>
+                </>
+              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato GI disponibile</div>}
+            </div>
+          </>
+        )
+      )}
+    </div>
+  );
+}
 
   useEffect(()=>{
     function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setShowDd(false);}
@@ -1056,160 +1491,6 @@ function Stats({uid, allFoods}) {
     </div>
   );
 
-  return (
-    <div>
-      <div className="pills">
-        {[{id:'count',lbl:'🔢 Conta'},{id:'last',lbl:'🕐 Ultima'},{id:'top',lbl:'🏆 Top'},{id:'diet',lbl:'🥗 Dieta'}].map(m=>(
-          <div key={m.id} className={`pill ${mode===m.id?'on':''}`} onClick={()=>{setMode(m.id);setRes(null);}}>
-            {m.lbl}
-          </div>
-        ))}
-      </div>
-
-      {mode !== 'last' && <PeriodSelector/>}
-
-      {(mode==='count'||mode==='last') && (
-        <div className="card">
-          <div style={{position:'relative'}} ref={ddRef}>
-            <input className="inp" placeholder="Cerca alimento..."
-              value={q}
-              onChange={e=>{setQ(e.target.value);setShowDd(true);setSelFood(null);setRes(null);}}
-              onFocus={()=>setShowDd(true)}/>
-            {showDd && fdResults.length>0 && (
-              <div className="fs-dd">
-                {fdResults.map(f=>(
-                  <div key={f.id} className="fs-item" onClick={()=>{setSelFood(f);setQ(f.nome);setShowDd(false);setRes(null);}}>
-                    <span>{f.em} {f.nome}</span>
-                    <span className="fs-cat">{f.cat}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {selFood && (
-            <div style={{marginTop:10}}>
-              <button className="btn btn-p btn-full"
-                onClick={mode==='count'?doCount:doLast}
-                disabled={loading}>
-                {loading ? 'Ricerca in corso...'
-                  : mode==='count'
-                    ? `Conta "${selFood.nome}" — ${getPeriodLabel()}`
-                    : `Ultima volta: "${selFood.nome}"`}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* RISULTATO CONTA */}
-      {res && res.type==='count' && (
-        <div className="stat-card">
-          <div className="stat-qlbl">{res.food.em} {res.food.nome} — {res.period}</div>
-          <div className="stat-num">{res.count}</div>
-          <div className="stat-unit">{res.count===1?'volta':'volte'}</div>
-        </div>
-      )}
-
-      {/* RISULTATO ULTIMA VOLTA */}
-      {res && res.type==='last' && (
-        <div className="stat-card">
-          <div className="stat-qlbl">Ultima volta: {res.food.em} {res.food.nome}</div>
-          {res.date ? (
-            <>
-              <div className="stat-date">{fmtDate(res.date)}</div>
-              {res.tipoPasto && <div className="stat-meta">{MT_MAP[res.tipoPasto]?.ic} {MT_MAP[res.tipoPasto]?.lbl}{res.nota?` • "${res.nota}"`:''}</div>}
-            </>
-          ) : (
-            <div style={{color:'var(--text3)',fontSize:14,marginTop:8}}>
-              Mai registrato nei dati disponibili
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TOP ALIMENTI */}
-      {mode==='top' && (
-        <div className="card">
-          <div className="card-title">🏆 Alimenti più frequenti — {getPeriodLabel()}</div>
-          {topLoad ? (
-            <div className="spin-wrap"><div className="spinner"/></div>
-          ) : top.length===0 ? (
-            <div className="empty"><div className="empty-ic">📊</div><div className="empty-tx">Nessun dato per questo periodo.</div></div>
-          ) : top.map((f,i)=>(
-            <div key={f.nome} className="tf-row">
-              <div className="tf-rank">{i+1}</div>
-              <span style={{fontSize:17}}>{f.em}</span>
-              <div className="tf-name">{f.nome}</div>
-              <div className="tf-track"><div className="tf-fill" style={{width:`${(f.count/top[0].count)*100}%`}}/></div>
-              <div className="tf-cnt">{f.count}×</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* DIETA */}
-      {mode==='diet' && (
-        dietLoad ? <div className="spin-wrap"><div className="spinner"/></div>
-        : !diet ? <div className="empty"><div className="empty-ic">🥗</div><div className="empty-tx">Nessun dato.</div></div>
-        : (
-          <>
-            <div className="card">
-              <div className="card-title">🥗 Analisi dieta — {getPeriodLabel()}</div>
-              <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>{diet.meals} pasti · {diet.total} alimenti registrati</div>
-
-              <div className="ds-grid">
-                <div className="ds-card">
-                  <div className="ds-ic">🌾</div>
-                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.gfCount}</div>
-                  <div className="ds-lbl">porzioni<br/>senza glutine</div>
-                </div>
-                <div className="ds-card">
-                  <div className="ds-ic">🥛</div>
-                  <div className="ds-num" style={{color:'var(--accent)'}}>{diet.lfCount}</div>
-                  <div className="ds-lbl">porzioni<br/>senza lattosio</div>
-                </div>
-              </div>
-
-              <label className="lbl" style={{marginBottom:8,display:'block'}}>Distribuzione FODMAP</label>
-              {diet.total>0 ? (
-                <>
-                  <div className="fodmap-bar">
-                    <div className="fodmap-seg" style={{width:`${(diet.fodLow/diet.total)*100}%`,background:'#7ab87a'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.fodMed/diet.total)*100}%`,background:'#e8a84c'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.fodHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
-                  </div>
-                  <div className="fodmap-legend">
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Low: {diet.fodLow} ({Math.round(diet.fodLow/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Med: {diet.fodMed} ({Math.round(diet.fodMed/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> High: {diet.fodHigh} ({Math.round(diet.fodHigh/diet.total*100)}%)</div>
-                  </div>
-                </>
-              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato FODMAP disponibile</div>}
-
-              <div className="divider"/>
-              <label className="lbl" style={{marginBottom:8,display:'block',marginTop:8}}>Indice Glicemico</label>
-              {diet.total>0 ? (
-                <>
-                  <div className="fodmap-bar">
-                    <div className="fodmap-seg" style={{width:`${(diet.giLow/diet.total)*100}%`,background:'#7ab87a'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.giMed/diet.total)*100}%`,background:'#e8a84c'}}/>
-                    <div className="fodmap-seg" style={{width:`${(diet.giHigh/diet.total)*100}%`,background:'#e87a7a'}}/>
-                  </div>
-                  <div className="fodmap-legend">
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#7ab87a'}}/> Basso: {diet.giLow} ({Math.round(diet.giLow/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e8a84c'}}/> Medio: {diet.giMed} ({Math.round(diet.giMed/diet.total*100)}%)</div>
-                    <div className="fodmap-leg-item"><div className="fodmap-leg-dot" style={{background:'#e87a7a'}}/> Alto: {diet.giHigh} ({Math.round(diet.giHigh/diet.total*100)}%)</div>
-                  </div>
-                </>
-              ) : <div style={{fontSize:12,color:'var(--text3)'}}>Nessun dato GI disponibile</div>}
-            </div>
-          </>
-        )
-      )}
-    </div>
-  );
-}
 
 /* ============================================================
    CATALOG
