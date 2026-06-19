@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 :root{--bg:#1a1a17;--sf:#242420;--sf2:#2e2e29;--bd:#38382f;--ac:#e8a84c;--acd:rgba(232,168,76,.12);--acb:rgba(232,168,76,.35);--gn:#7ab87a;--gnd:rgba(122,184,122,.12);--rd:#e87a7a;--tx:#f0ede4;--tx2:#a8a49a;--tx3:#5e5a52;--r:14px;--rs:8px;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1361,6 +1361,64 @@ function WeightTab(props) {
   var rS=useState(30), chartRange=rS[0], setChartRange=rS[1];
   var WTAGS=['a digiuno','mattina','sera','dopo colazione','dopo pranzo','dopo cena','dopo palestra','gonfiore'];
 
+  // BLE scale
+  var bleStS=useState('idle'), bleSt=bleStS[0], setBleSt=bleStS[1];
+  var bleNameS=useState(''), bleName=bleNameS[0], setBleName=bleNameS[1];
+  var bleWS=useState(null), bleW=bleWS[0], setBleW=bleWS[1];
+  var bleStableS=useState(false), bleStable=bleStableS[0], setBleStable=bleStableS[1];
+  var bleDevRef=useRef(null);
+  var BLE_SVC='0000fff0-0000-1000-8000-00805f9b34fb';
+  var BLE_NTF='0000fff4-0000-1000-8000-00805f9b34fb';
+
+  function onBleData(e){
+    var d=e.target.value;
+    if(d.byteLength<5) return;
+    // Parsing A: bytes[3-4] big-endian / 100 = kg (PPScale standard)
+    var rawA=(d.getUint8(3)<<8)|d.getUint8(4);
+    var kgA=rawA/100.0;
+    // Parsing B: bytes[1-2] big-endian / 100 (alcuni modelli)
+    var rawB=(d.getUint8(1)<<8)|d.getUint8(2);
+    var kgB=rawB/100.0;
+    var kg=(kgA>=20&&kgA<=250)?kgA:((kgB>=20&&kgB<=250)?kgB:null);
+    if(!kg) return;
+    // Stabilità: byte[5] bit0 o byte[17] bit0
+    var stable=d.byteLength>5&&((d.getUint8(5)&0x01)===0x01);
+    if(!stable&&d.byteLength>17) stable=((d.getUint8(17)&0x01)===0x01);
+    setBleW(kg); setBleStable(stable);
+    if(stable) setPesoStr(kg.toFixed(1));
+  }
+
+  function connectScale(){
+    if(!navigator.bluetooth){alert('Web Bluetooth richiede Chrome su Android con HTTPS.');return;}
+    setBleSt('scanning');setBleW(null);setBleStable(false);
+    navigator.bluetooth.requestDevice({
+      filters:[{namePrefix:'LF_Scale_'}],
+      optionalServices:[BLE_SVC]
+    })
+    .then(function(device){
+      bleDevRef.current=device; setBleName(device.name||'LF_Scale');
+      device.addEventListener('gattserverdisconnected',function(){setBleSt('disconnected');setBleW(null);});
+      setBleSt('connecting');
+      return device.gatt.connect();
+    })
+    .then(function(srv){return srv.getPrimaryService(BLE_SVC);})
+    .then(function(svc){return svc.getCharacteristic(BLE_NTF);})
+    .then(function(chr){
+      chr.addEventListener('characteristicvaluechanged',onBleData);
+      return chr.startNotifications();
+    })
+    .then(function(){setBleSt('connected');})
+    .catch(function(err){
+      console.error('BLE:',err);
+      setBleSt(err.name==='NotFoundError'?'notfound':'error');
+    });
+  }
+
+  function disconnectScale(){
+    if(bleDevRef.current&&bleDevRef.current.gatt.connected) bleDevRef.current.gatt.disconnect();
+    setBleSt('idle');setBleW(null);setBleStable(false);setBleName('');
+  }
+
   useEffect(function(){loadHistory();}, [chartRange]);
 
   function loadHistory(){
@@ -1403,6 +1461,73 @@ function WeightTab(props) {
 
   return (
     <div>
+      {/* CARD BILANCIA BLE */}
+      <div className="card" style={{marginBottom:12}}>
+        <div className="card-title">📡 Bilancia Bluetooth</div>
+        {bleSt==='idle' && (
+          <div>
+            <div style={{fontSize:12,color:'var(--tx3)',marginBottom:10,lineHeight:1.6}}>
+              Connetti la bilancia INSMART Health via Bluetooth.<br/>
+              <span style={{color:'var(--tx2)'}}>Richiede Chrome su Android.</span>
+            </div>
+            <button className="btn btn-p btn-full" onClick={connectScale}>🔵 Connetti bilancia</button>
+          </div>
+        )}
+        {bleSt==='scanning' && (
+          <div style={{textAlign:'center',padding:'12px 0'}}>
+            <div className="spinner" style={{margin:'0 auto 8px'}}/>
+            <div style={{fontSize:13,color:'var(--tx2)'}}>Ricerca bilancia INSMART...</div>
+            <div style={{fontSize:11,color:'var(--tx3)',marginTop:4}}>Accendi la bilancia e sali sopra</div>
+          </div>
+        )}
+        {bleSt==='connecting' && (
+          <div style={{textAlign:'center',padding:'12px 0'}}>
+            <div className="spinner" style={{margin:'0 auto 8px'}}/>
+            <div style={{fontSize:13,color:'var(--tx2)'}}>Connessione a {bleName}...</div>
+          </div>
+        )}
+        {bleSt==='connected' && (
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+              <span style={{fontSize:11,color:'var(--gn)',fontWeight:600}}>● CONNESSA</span>
+              <span style={{fontSize:11,color:'var(--tx3)',flex:1}}>{bleName}</span>
+              <button className="btn btn-s btn-sm" onClick={disconnectScale}>Disconnetti</button>
+            </div>
+            {bleW===null && (
+              <div style={{textAlign:'center',padding:'10px 0',color:'var(--tx3)',fontSize:13}}>
+                <div className="spinner" style={{margin:'0 auto 8px'}}/>
+                Sali sulla bilancia...
+              </div>
+            )}
+            {bleW!==null && (
+              <div style={{textAlign:'center',padding:'8px 0'}}>
+                <div style={{fontFamily:'Playfair Display',fontWeight:700,fontSize:52,
+                  color:bleStable?'var(--gn)':'var(--ac)',lineHeight:1,
+                  transition:'color .3s'}}>
+                  {bleW.toFixed(1)}
+                </div>
+                <div style={{fontSize:14,color:'var(--tx2)',marginTop:4}}>kg</div>
+                <div style={{fontSize:12,marginTop:6,
+                  color:bleStable?'var(--gn)':'var(--ac)',fontWeight:600}}>
+                  {bleStable?'✓ Peso stabile — campo compilato automaticamente':'⟳ Misurazione in corso...'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {(bleSt==='disconnected'||bleSt==='error'||bleSt==='notfound') && (
+          <div>
+            <div style={{fontSize:13,color:'var(--rd)',marginBottom:8}}>
+              {bleSt==='notfound'?'Bilancia non trovata. Accendila e riprova.':
+               bleSt==='disconnected'?'Bilancia disconnessa.':
+               'Errore di connessione.'}
+            </div>
+            <button className="btn btn-p btn-full" onClick={connectScale}>🔵 Riprova</button>
+          </div>
+        )}
+      </div>
+
+      {/* CARD GRAFICO */}
       <div className="card">
         <div className="card-title">⚖️ Andamento peso</div>
         {lastW && (
