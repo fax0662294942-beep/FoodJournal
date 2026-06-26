@@ -1620,8 +1620,10 @@ function Catalog(props){
   var openS=useState({}), open=openS[0], setOpen=openS[1];
   var fqS=useState(''), fq=fqS[0], setFq=fqS[1];
   var showS=useState(false), show=showS[0], setShow=showS[1];
-  var nfS=useState({nome:'',cat:'',sub:'',em:'',tags:''}), nf=nfS[0], setNf=nfS[1];
+  var nfS=useState({nome:'',cat:'',sub:'',em:'',tags:[]}), nf=nfS[0], setNf=nfS[1];
   var savS=useState(false), saving=savS[0], setSaving=savS[1];
+  var showEmojiS=useState(false), showEmoji=showEmojiS[0], setShowEmoji=showEmojiS[1];
+  var tagQS=useState(''), tagQ=tagQS[0], setTagQ=tagQS[1];
 
   // Open Food Facts
   var offTabS=useState('catalog'), offTab=offTabS[0], setOffTab=offTabS[1];
@@ -1630,16 +1632,34 @@ function Catalog(props){
   var offLoadS=useState(false), offLoad=offLoadS[0], setOffLoad=offLoadS[1];
   var offErrS=useState(''), offErr=offErrS[0], setOffErr=offErrS[1];
   var offAddedS=useState({}), offAdded=offAddedS[0], setOffAdded=offAddedS[1];
-  var offEditS=useState({}), offEdit=offEditS[0], setOffEdit=offEditS[1]; // {code: {gluten,lactose,fodmap,gi}}
-  var offOpenS=useState(null), offOpen=offOpenS[0], setOffOpen=offOpenS[1]; // codice prodotto aperto
+  var offEditS=useState({}), offEdit=offEditS[0], setOffEdit=offEditS[1];
+  var offOpenS=useState(null), offOpen=offOpenS[0], setOffOpen=offOpenS[1];
 
   // Edit prodotto esistente
   var editIdS=useState(null), editId=editIdS[0], setEditId=editIdS[1];
   var editDataS=useState({}), editData=editDataS[0], setEditData=editDataS[1];
 
+  var FOOD_EMOJIS=['☀️','🌾','🥩','🍗','🐟','🥓','🥚','🧀','🫘','🥦','🍎','🍪','☕','🍷','🫒','🍕','🍝','🍞','🥗','🥛','🍅','🥒','🥕','🥔','🍄','🧅','🫑','🌽','🥜','🍓','🍇','🍊','🍋','🍑','🍌','🍉','🍫','🎂','🍦','🥤','🧃','🍺','🥃','🍹','🧈','🫙','🍯','💧','🌭','🍔','🐠','🦐','🦪','🥩','🍖','🦆','🐇','🥞','🧇'];
+
   var allFoods=FOODS.concat(custom);
   var CATS=[];
   FOODS.forEach(function(f){if(CATS.indexOf(f.cat)<0)CATS.push(f.cat);});
+
+  // Tutti i tag esistenti dal catalogo
+  var allTags=useMemo(function(){
+    var tags=[];
+    allFoods.forEach(function(f){
+      (f.tags||[]).forEach(function(t){if(t&&tags.indexOf(t)<0)tags.push(t);});
+    });
+    return tags.sort();
+  },[custom]);
+
+  // Tag filtrati dalla ricerca
+  var suggestedTags=useMemo(function(){
+    if(!tagQ) return allTags;
+    var lq=tagQ.toLowerCase();
+    return allTags.filter(function(t){return t.toLowerCase().indexOf(lq)>=0;});
+  },[tagQ,allTags]);
 
   var filtered=useMemo(function(){
     if(!fq) return allFoods;
@@ -1653,15 +1673,31 @@ function Catalog(props){
     return g;
   },[filtered]);
 
+  function toggleNewTag(t){
+    setNf(function(p){
+      var tags=p.tags.indexOf(t)>=0?p.tags.filter(function(x){return x!==t;}):p.tags.concat([t]);
+      return Object.assign({},p,{tags:tags});
+    });
+  }
+  function addNewTag(){
+    var t=tagQ.trim();
+    if(!t) return;
+    setNf(function(p){
+      var tags=p.tags.indexOf(t)>=0?p.tags:p.tags.concat([t]);
+      return Object.assign({},p,{tags:tags});
+    });
+    setTagQ('');
+  }
+
   function saveNew(){
     if(!nf.nome||!nf.cat) return;
     setSaving(true);
-    var food={id:'custom_'+Date.now(),nome:nf.nome.trim(),cat:nf.cat.trim(),sub:nf.sub.trim()||nf.cat.trim(),em:nf.em||'🍽️',
-      tags:nf.tags.split(',').map(function(t){return t.trim();}).filter(Boolean),custom:true};
+    var food={id:'custom_'+Date.now(),nome:nf.nome.trim(),cat:nf.cat.trim(),sub:nf.sub.trim()||nf.cat.trim(),
+      em:nf.em||'🍽️',tags:nf.tags,custom:true};
     addCustomFood(uid,food).then(function(docId){
       onAdded(Object.assign({},food,{firestoreId:docId}));
-      setNf({nome:'',cat:'',sub:'',em:'',tags:''});
-      setShow(false);
+      setNf({nome:'',cat:'',sub:'',em:'',tags:[]});
+      setShow(false); setShowEmoji(false); setTagQ('');
     }).finally(function(){setSaving(false);});
   }
 
@@ -1779,25 +1815,81 @@ function Catalog(props){
           {show && (
             <div className="card" style={{marginBottom:12}}>
               <div className="card-title">Aggiungi alimento</div>
-              <div className="ig"><label className="lbl">Nome *</label>
+
+              <div className="ig">
+                <label className="lbl">Nome *</label>
                 <input className="inp" value={nf.nome} onChange={function(e){setNf(function(p){return Object.assign({},p,{nome:e.target.value});});}}/>
               </div>
-              <div className="row2">
-                <div className="ig"><label className="lbl">Emoji</label>
-                  <input className="inp" value={nf.em} onChange={function(e){setNf(function(p){return Object.assign({},p,{em:e.target.value});});}}/>
+
+              {/* EMOJI PICKER */}
+              <div className="ig">
+                <label className="lbl">Emoji</label>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  <div style={{fontSize:28,width:40,textAlign:'center'}}>{nf.em||'🍽️'}</div>
+                  <button className="btn btn-s btn-sm" style={{flexShrink:0}}
+                    onClick={function(){setShowEmoji(function(s){return !s;});}}>
+                    {showEmoji?'✕ Chiudi':'🎨 Scegli'}
+                  </button>
+                  <input className="inp" placeholder="o scrivi..." value={nf.em}
+                    onChange={function(e){setNf(function(p){return Object.assign({},p,{em:e.target.value});});setShowEmoji(false);}}
+                    style={{flex:1,fontSize:18}}/>
                 </div>
-                <div className="ig"><label className="lbl">Categoria *</label>
-                  <input className="inp" list="cat-list" value={nf.cat} onChange={function(e){setNf(function(p){return Object.assign({},p,{cat:e.target.value});});}}/>
-                  <datalist id="cat-list">{CATS.map(function(c){return <option key={c} value={c}/>;})}</datalist>
-                </div>
+                {showEmoji && (
+                  <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:8,padding:'8px',background:'var(--sf2)',borderRadius:'var(--rs)',border:'1px solid var(--bd)'}}>
+                    {FOOD_EMOJIS.map(function(em){
+                      return (
+                        <span key={em} style={{fontSize:24,cursor:'pointer',padding:'4px',borderRadius:6,
+                          background:nf.em===em?'var(--acd)':'transparent',transition:'background .1s'}}
+                          onClick={function(){setNf(function(p){return Object.assign({},p,{em:em});});setShowEmoji(false);}}>
+                          {em}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              <div className="ig"><label className="lbl">Sottocategoria</label>
+
+              <div className="ig">
+                <label className="lbl">Categoria *</label>
+                <input className="inp" list="cat-list" value={nf.cat} onChange={function(e){setNf(function(p){return Object.assign({},p,{cat:e.target.value});});}}/>
+                <datalist id="cat-list">{CATS.map(function(c){return <option key={c} value={c}/>;})}</datalist>
+              </div>
+
+              <div className="ig">
+                <label className="lbl">Sottocategoria</label>
                 <input className="inp" value={nf.sub} onChange={function(e){setNf(function(p){return Object.assign({},p,{sub:e.target.value});});}}/>
               </div>
-              <div className="ig"><label className="lbl">Tag (virgola)</label>
-                <input className="inp" value={nf.tags} onChange={function(e){setNf(function(p){return Object.assign({},p,{tags:e.target.value});});}}/>
+
+              {/* TAG PICKER */}
+              <div className="ig">
+                <label className="lbl">Tag</label>
+                {nf.tags.length>0 && (
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
+                    {nf.tags.map(function(t){
+                      return <span key={t} className="tag on" onClick={function(){toggleNewTag(t);}}>{t} ✕</span>;
+                    })}
+                  </div>
+                )}
+                <div style={{display:'flex',gap:6,marginBottom:6}}>
+                  <input className="inp" placeholder="Cerca o aggiungi tag..." value={tagQ}
+                    onChange={function(e){setTagQ(e.target.value);}}
+                    onKeyDown={function(e){if(e.key==='Enter'){e.preventDefault();addNewTag();}}}
+                    style={{flex:1}}/>
+                  {tagQ.trim() && <button className="btn btn-p btn-sm" onClick={addNewTag}>+ Aggiungi</button>}
+                </div>
+                {suggestedTags.length>0 && (
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                    {suggestedTags.slice(0,20).map(function(t){
+                      var sel=nf.tags.indexOf(t)>=0;
+                      return <span key={t} className={'tag'+(sel?' on':'')} onClick={function(){toggleNewTag(t);}}>{t}</span>;
+                    })}
+                  </div>
+                )}
               </div>
-              <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>{saving?'Salvataggio...':'Salva'}</button>
+
+              <button className="btn btn-p btn-full" onClick={saveNew} disabled={saving||!nf.nome||!nf.cat}>
+                {saving?'Salvataggio...':'Salva'}
+              </button>
             </div>
           )}
           {Object.entries(grouped).map(function(entry){
