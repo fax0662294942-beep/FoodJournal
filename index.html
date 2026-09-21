@@ -179,6 +179,23 @@ textarea.inp{resize:none;height:66px;}
 .wt-info{flex:1;min-width:0;}
 .wt-date{font-size:12px;color:var(--tx2);}
 .wt-meta{font-size:10px;color:var(--tx3);margin-top:2px;}
+.gear-btn{background:none;border:none;color:var(--tx3);font-size:18px;cursor:pointer;padding:6px;flex-shrink:0;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px;width:100%;max-width:360px;max-height:82vh;overflow-y:auto;}
+.modal-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--ac);margin-bottom:14px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--bd);}
+.settings-row:last-of-type{border-bottom:none;}
+.settings-lbl{font-size:14px;color:var(--tx);font-weight:500;}
+.settings-sub{font-size:11px;color:var(--tx3);margin-top:2px;}
+.switch{position:relative;width:42px;height:24px;background:var(--sf2);border:1px solid var(--bd);border-radius:20px;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.switch.on{background:var(--ac);border-color:var(--ac);}
+.switch-dot{position:absolute;top:2px;left:2px;width:18px;height:18px;background:var(--tx2);border-radius:50%;transition:all .2s;}
+.switch.on .switch-dot{left:20px;background:#1a1a17;}
+.bp-row{display:flex;gap:8px;}
+.bp-row .ig{flex:1;}
+.bp-val{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--ac);min-width:76px;}
+.bp-val.hi{color:var(--rd);}
+.bp-med{padding:2px 8px;border-radius:20px;font-size:10px;background:var(--acd);color:var(--ac);border:1px solid var(--acb);}
 .off-card{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:11px;margin-bottom:8px;}
 .off-name{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:3px;}
 .off-brand{font-size:11px;color:var(--tx3);margin-bottom:6px;}
@@ -397,6 +414,15 @@ function getWeights(uid,start,end){
     .then(function(s){return s.docs.map(function(d){return Object.assign({id:d.id},d.data());});});
 }
 function delWeight(id){return db.collection('foodDiary_weights').doc(id).delete();}
+
+function savePressure(uid,data){
+  return db.collection('foodDiary_pressure').add(Object.assign({},data,{userId:uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()}));
+}
+function getPressures(uid,start,end){
+  return db.collection('foodDiary_pressure').where('userId','==',uid).where('data','>=',start).where('data','<=',end).orderBy('data','asc').get()
+    .then(function(s){return s.docs.map(function(d){return Object.assign({id:d.id},d.data());});});
+}
+function delPressure(id){return db.collection('foodDiary_pressure').doc(id).delete();}
 
 function searchOpenFoodFacts(query){
   var url='https://it.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(query)+'&search_simple=1&action=process&json=1&page_size=15&lc=it&cc=it&fields=product_name,brands,allergens_tags,categories_tags,image_small_url,code';
@@ -1614,6 +1640,257 @@ function WeightTab(props) {
   );
 }
 
+// PRESSURE CHART
+function PressureChart(props) {
+  var data = props.data || [];
+  if(data.length === 0) return (
+    <div className="empty" style={{padding:'16px 0'}}>
+      <div className="empty-ic" style={{fontSize:24}}>🩺</div>
+      <div className="empty-tx">Nessuna misurazione in questo periodo.</div>
+    </div>
+  );
+  var sorted = data.slice().sort(function(a,b){
+    var da=a.data&&a.data.toDate?a.data.toDate():new Date(a.data);
+    var db=b.data&&b.data.toDate?b.data.toDate():new Date(b.data);
+    return da-db;
+  });
+  var allVals = [];
+  sorted.forEach(function(d){allVals.push(d.massima,d.minima);});
+  var minP = Math.min.apply(null,allVals);
+  var maxP = Math.max.apply(null,allVals);
+  var pad = Math.max((maxP-minP)*0.15, 5);
+  minP = minP-pad; maxP = maxP+pad;
+  var range = maxP-minP;
+  var W=300, H=120, PX=6, PY=20;
+  var iW=W-PX*2, iH=H-PY*2;
+  function toX(i){return PX+(sorted.length===1?iW/2:i/(sorted.length-1)*iW);}
+  function toY(p){return PY+iH-((p-minP)/range*iH);}
+  var ptsMax=sorted.map(function(d,i){return toX(i)+','+toY(d.massima);}).join(' ');
+  var ptsMin=sorted.map(function(d,i){return toX(i)+','+toY(d.minima);}).join(' ');
+  return (
+    <svg viewBox={'0 0 '+W+' '+H} style={{width:'100%',height:140,display:'block'}}>
+      <polyline points={ptsMax} fill="none" stroke="#e87a7a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points={ptsMin} fill="none" stroke="#e8a84c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      {sorted.map(function(d,i){
+        var xMax=toX(i), yMax=toY(d.massima);
+        var yMin=toY(d.minima);
+        var dt=d.data&&d.data.toDate?d.data.toDate():new Date(d.data);
+        var showLbl=sorted.length<=8||i===0||i===sorted.length-1;
+        return (
+          <g key={i}>
+            <circle cx={xMax} cy={yMax} r="3.2" fill="#e87a7a" stroke="#1a1a17" strokeWidth="1.5"/>
+            <circle cx={xMax} cy={yMin} r="3.2" fill="#e8a84c" stroke="#1a1a17" strokeWidth="1.5"/>
+            {showLbl && <text x={xMax} y={yMax-6} textAnchor="middle" fontSize="8" fill="#e87a7a" fontWeight="700">{d.massima}</text>}
+            {showLbl && <text x={xMax} y={yMin+13} textAnchor="middle" fontSize="8" fill="#e8a84c" fontWeight="700">{d.minima}</text>}
+            {showLbl && <text x={xMax} y={H-3} textAnchor="middle" fontSize="7" fill="#5e5a52">{(dt.getDate())+'/'+(dt.getMonth()+1)}</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// PRESSURE TAB
+function PressureTab(props) {
+  var uid = props.uid;
+  var today = toDateStr(new Date());
+  function nowHM(){ var d=new Date(); return (d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes(); }
+  var dS=useState(today), date=dS[0], setDate=dS[1];
+  var oS=useState(nowHM()), ora=oS[0], setOra=oS[1];
+  var maxS=useState(''), massima=maxS[0], setMassima=maxS[1];
+  var minS=useState(''), minima=minS[0], setMinima=minS[1];
+  var batS=useState(''), battiti=batS[0], setBattiti=batS[1];
+  var comS=useState('nessuna'), compressa=comS[0], setCompressa=comS[1];
+  var svS=useState(false), saving=svS[0], setSaving=svS[1];
+  var hS=useState([]), history=hS[0], setHistory=hS[1];
+  var hlS=useState(true), histLoading=hlS[0], setHistLoading=hlS[1];
+  var rS=useState(30), chartRange=rS[0], setChartRange=rS[1];
+  var med1 = localStorage.getItem('fj_bp_med1')||'Compressa A';
+  var med2 = localStorage.getItem('fj_bp_med2')||'Compressa B';
+
+  useEffect(function(){loadHistory();}, [chartRange]);
+
+  function loadHistory(){
+    setHistLoading(true);
+    var start=new Date(); start.setDate(start.getDate()-chartRange); start.setHours(0,0,0,0);
+    var end=new Date(); end.setHours(23,59,59,999);
+    getPressures(uid,start,end).then(function(data){setHistory(data);}).catch(function(){setHistory([]);}).finally(function(){setHistLoading(false);});
+  }
+
+  function valid(){
+    var ma=parseInt(massima), mi=parseInt(minima), bp=parseInt(battiti);
+    return massima&&minima&&battiti&&!isNaN(ma)&&!isNaN(mi)&&!isNaN(bp)&&ma>=40&&ma<=260&&mi>=30&&mi<=180&&bp>=30&&bp<=220;
+  }
+
+  function save(){
+    if(!valid()) return;
+    setSaving(true);
+    savePressure(uid,{
+      data:dayStart(date), ora:ora,
+      massima:parseInt(massima), minima:parseInt(minima), battiti:parseInt(battiti),
+      compressa:compressa
+    })
+      .then(function(){setMassima('');setMinima('');setBattiti('');setCompressa('nessuna');setOra(nowHM());loadHistory();})
+      .catch(function(e){console.error(e);})
+      .finally(function(){setSaving(false);});
+  }
+
+  var chartData = history.slice().sort(function(a,b){
+    var da=a.data&&a.data.toDate?a.data.toDate():new Date(a.data);
+    var db=b.data&&b.data.toDate?b.data.toDate():new Date(b.data);
+    return da-db;
+  });
+
+  var today_dt = new Date(); today_dt.setHours(0,0,0,0);
+  var lastP = null;
+  history.forEach(function(p){
+    var dt=p.data&&p.data.toDate?p.data.toDate():new Date(p.data);
+    dt.setHours(0,0,0,0);
+    if(dt.getTime()===today_dt.getTime()) lastP=p;
+  });
+
+  function medLabel(c){
+    if(c==='a') return med1;
+    if(c==='b') return med2;
+    return null;
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-title">🩺 Andamento pressione</div>
+        {lastP && (
+          <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+            <span className={'bp-val'+(lastP.massima>=140||lastP.minima>=90?' hi':'')}>{lastP.massima}/{lastP.minima}</span>
+            <span style={{fontSize:13,color:'var(--tx3)'}}>mmHg oggi</span>
+            <span style={{fontSize:13,color:'var(--tx3)'}}>· {lastP.battiti} bpm</span>
+          </div>
+        )}
+        <div className="pills" style={{marginBottom:8}}>
+          {[7,14,30,90].map(function(r){
+            return <div key={r} className={'pill'+(chartRange===r?' on':'')} onClick={function(){setChartRange(r);}}>{'Ultimi '+r+'g'}</div>;
+          })}
+        </div>
+        {histLoading ? <div className="spin-wrap"><div className="spinner"/></div> : <PressureChart data={chartData}/>}
+        <div style={{display:'flex',gap:14,marginTop:8,fontSize:11,color:'var(--tx3)'}}>
+          <span><span style={{color:'#e87a7a'}}>●</span> Massima</span>
+          <span><span style={{color:'#e8a84c'}}>●</span> Minima</span>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Registra misurazione</div>
+        <div className="bp-row">
+          <div className="ig">
+            <label className="lbl">Data</label>
+            <input type="date" className="inp" value={date} max={today} onChange={function(e){setDate(e.target.value);}}/>
+          </div>
+          <div className="ig">
+            <label className="lbl">Ora</label>
+            <input type="time" className="inp" value={ora} onChange={function(e){setOra(e.target.value);}}/>
+          </div>
+        </div>
+        <div className="bp-row">
+          <div className="ig">
+            <label className="lbl">Massima</label>
+            <input type="number" className="inp" placeholder="es. 120" value={massima} onChange={function(e){setMassima(e.target.value);}}/>
+          </div>
+          <div className="ig">
+            <label className="lbl">Minima</label>
+            <input type="number" className="inp" placeholder="es. 80" value={minima} onChange={function(e){setMinima(e.target.value);}}/>
+          </div>
+          <div className="ig">
+            <label className="lbl">Battiti</label>
+            <input type="number" className="inp" placeholder="es. 70" value={battiti} onChange={function(e){setBattiti(e.target.value);}}/>
+          </div>
+        </div>
+        <div className="ig">
+          <div className="lbl" style={{marginBottom:6}}>Compressa presa</div>
+          <div className="pills">
+            <div className={'pill'+(compressa==='nessuna'?' on':'')} onClick={function(){setCompressa('nessuna');}}>Nessuna</div>
+            <div className={'pill'+(compressa==='a'?' on':'')} onClick={function(){setCompressa('a');}}>{med1}</div>
+            <div className={'pill'+(compressa==='b'?' on':'')} onClick={function(){setCompressa('b');}}>{med2}</div>
+          </div>
+        </div>
+        <button className="btn btn-p btn-full" onClick={save} disabled={saving||!valid()}>
+          {saving?'Salvataggio...':'Salva misurazione'}
+        </button>
+      </div>
+
+      {history.length>0 && (
+        <div className="card">
+          <div className="card-title">Storico</div>
+          <div className="wt-hist">
+            {history.slice().sort(function(a,b){
+              var da=a.data&&a.data.toDate?a.data.toDate():new Date(a.data);
+              var db=b.data&&b.data.toDate?b.data.toDate():new Date(b.data);
+              return db-da;
+            }).map(function(p){
+              var dt=p.data&&p.data.toDate?p.data.toDate():new Date(p.data);
+              var ml=medLabel(p.compressa);
+              return (
+                <div key={p.id} className="wt-row">
+                  <span className={'bp-val'+(p.massima>=140||p.minima>=90?' hi':'')} style={{fontSize:17,minWidth:64}}>{p.massima}/{p.minima}</span>
+                  <div className="wt-info">
+                    <div className="wt-date">{fmtDate(dt)}{p.ora?' · '+p.ora:''} · {p.battiti} bpm</div>
+                    {ml && <div className="wt-meta"><span className="bp-med">{ml}</span></div>}
+                  </div>
+                  <button className="ico-btn" onClick={function(){
+                    delPressure(p.id).then(function(){setHistory(function(prev){return prev.filter(function(x){return x.id!==p.id;});});});
+                  }}>🗑️</button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// SETTINGS MODAL
+function SettingsModal(props){
+  var modPress=props.modPress, setModPress=props.setModPress, onClose=props.onClose;
+  var m1S=useState(function(){return localStorage.getItem('fj_bp_med1')||'Compressa A';}), med1=m1S[0], setMed1=m1S[1];
+  var m2S=useState(function(){return localStorage.getItem('fj_bp_med2')||'Compressa B';}), med2=m2S[0], setMed2=m2S[1];
+
+  function toggleModule(){
+    var nv=!modPress;
+    localStorage.setItem('fj_mod_press', nv?'on':'off');
+    setModPress(nv);
+  }
+  function saveMed1(){ localStorage.setItem('fj_bp_med1', med1.trim()||'Compressa A'); }
+  function saveMed2(){ localStorage.setItem('fj_bp_med2', med2.trim()||'Compressa B'); }
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal-card" onClick={function(e){e.stopPropagation();}}>
+        <div className="modal-title">⚙️ Impostazioni</div>
+        <div className="settings-row">
+          <div>
+            <div className="settings-lbl">🩺 Modulo Pressione</div>
+            <div className="settings-sub">Diario pressione arteriosa con grafico</div>
+          </div>
+          <div className={'switch'+(modPress?' on':'')} onClick={toggleModule}><div className="switch-dot"/></div>
+        </div>
+        {modPress && (
+          <div style={{marginTop:10}}>
+            <div className="ig">
+              <label className="lbl">Nome compressa 1</label>
+              <input className="inp" value={med1} onChange={function(e){setMed1(e.target.value);}} onBlur={saveMed1}/>
+            </div>
+            <div className="ig">
+              <label className="lbl">Nome compressa 2</label>
+              <input className="inp" value={med2} onChange={function(e){setMed2(e.target.value);}} onBlur={saveMed2}/>
+            </div>
+          </div>
+        )}
+        <button className="btn btn-p btn-full" style={{marginTop:6}} onClick={onClose}>Chiudi</button>
+      </div>
+    </div>
+  );
+}
+
 // CATALOG
 function Catalog(props){
   var uid=props.uid, custom=props.custom, onAdded=props.onAdded;
@@ -2046,6 +2323,8 @@ function App(){
   var tabS=useState('add'), tab=tabS[0], setTab=tabS[1];
   var toastS=useState(''), toast=toastS[0], setToast=toastS[1];
   var customS=useState([]), custom=customS[0], setCustom=customS[1];
+  var setgS=useState(false), settingsOpen=setgS[0], setSettingsOpen=setgS[1];
+  var mpS=useState(function(){return localStorage.getItem('fj_mod_press')==='on';}), modPress=mpS[0], setModPress=mpS[1];
 
   useEffect(function(){
     return auth.onAuthStateChanged(function(u){
@@ -2076,7 +2355,9 @@ function App(){
     </div>
   );
 
-  var TABS=[{id:'add',ic:'✏️',lb:'Aggiungi'},{id:'diary',ic:'📔',lb:'Diario'},{id:'stats',ic:'📊',lb:'Statistiche'},{id:'peso',ic:'⚖️',lb:'Peso'},{id:'cat',ic:'🗂️',lb:'Catalogo'}];
+  var TABS=[{id:'add',ic:'✏️',lb:'Aggiungi'},{id:'diary',ic:'📔',lb:'Diario'},{id:'stats',ic:'📊',lb:'Statistiche'},{id:'peso',ic:'⚖️',lb:'Peso'}];
+  if(modPress) TABS.push({id:'press',ic:'🩺',lb:'Pressione'});
+  TABS.push({id:'cat',ic:'🗂️',lb:'Catalogo'});
 
   return (
     <React.Fragment>
@@ -2085,8 +2366,11 @@ function App(){
           <div className="hdr-title">FoodJournal</div>
           <div className="hdr-sub">diario alimentare personale</div>
         </div>
-        <div className="avatar" onClick={function(){if(window.confirm('Esci?'))auth.signOut();}}>
-          {user.photoURL ? <img src={user.photoURL} alt=""/> : (user.displayName?user.displayName.charAt(0):'U')}
+        <div style={{display:'flex',alignItems:'center',gap:2}}>
+          <button className="gear-btn" onClick={function(){setSettingsOpen(true);}}>⚙️</button>
+          <div className="avatar" onClick={function(){if(window.confirm('Esci?'))auth.signOut();}}>
+            {user.photoURL ? <img src={user.photoURL} alt=""/> : (user.displayName?user.displayName.charAt(0):'U')}
+          </div>
         </div>
       </div>
       <div className="content">
@@ -2094,6 +2378,7 @@ function App(){
         {tab==='diary' ? <Diary uid={user.uid}/> : null}
         {tab==='stats' ? <Stats uid={user.uid} allFoods={allFoods}/> : null}
         {tab==='peso'  ? <WeightTab uid={user.uid}/> : null}
+        {tab==='press' && modPress ? <PressureTab uid={user.uid}/> : null}
         {tab==='cat'   ? <Catalog uid={user.uid} custom={custom} onAdded={function(f){setCustom(function(p){return p.concat([f]);});}} /> : null}
         <div style={{height:14}}/>
       </div>
@@ -2108,6 +2393,7 @@ function App(){
         })}
       </div>
       <Toast msg={toast}/>
+      {settingsOpen && <SettingsModal modPress={modPress} setModPress={function(v){setModPress(v); if(!v&&tab==='press')setTab('add');}} onClose={function(){setSettingsOpen(false);}}/>}
     </React.Fragment>
   );
 }
