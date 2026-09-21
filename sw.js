@@ -1,4 +1,4 @@
-const CACHE = 'foodjournal-v230';
+const CACHE = 'foodjournal-v231';
 const CDN = [
   'https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js',

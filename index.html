@@ -1695,6 +1695,7 @@ function PressureTab(props) {
   var uid = props.uid;
   var today = toDateStr(new Date());
   function nowHM(){ var d=new Date(); return (d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes(); }
+  var mdS=useState('misura'), mode=mdS[0], setMode=mdS[1]; // 'misura' | 'farmaco'
   var dS=useState(today), date=dS[0], setDate=dS[1];
   var oS=useState(nowHM()), ora=oS[0], setOra=oS[1];
   var maxS=useState(''), massima=maxS[0], setMassima=maxS[1];
@@ -1717,20 +1718,24 @@ function PressureTab(props) {
     getPressures(uid,start,end).then(function(data){setHistory(data);}).catch(function(){setHistory([]);}).finally(function(){setHistLoading(false);});
   }
 
-  function valid(){
+  function validMisura(){
     var ma=parseInt(massima), mi=parseInt(minima), bp=parseInt(battiti);
     return massima&&minima&&battiti&&!isNaN(ma)&&!isNaN(mi)&&!isNaN(bp)&&ma>=40&&ma<=260&&mi>=30&&mi<=180&&bp>=30&&bp<=220;
   }
+  function canSave(){ return mode==='farmaco' ? true : validMisura(); }
 
   function save(){
-    if(!valid()) return;
+    if(!canSave()) return;
     setSaving(true);
-    savePressure(uid,{
-      data:dayStart(date), ora:ora,
-      massima:parseInt(massima), minima:parseInt(minima), battiti:parseInt(battiti),
-      compressa:compressa
-    })
-      .then(function(){setMassima('');setMinima('');setBattiti('');setCompressa('nessuna');setOra(nowHM());loadHistory();})
+    var payload = mode==='farmaco'
+      ? {data:dayStart(date), ora:null, massima:null, minima:null, battiti:null, compressa:compressa}
+      : {data:dayStart(date), ora:ora, massima:parseInt(massima), minima:parseInt(minima), battiti:parseInt(battiti), compressa:compressa};
+    savePressure(uid,payload)
+      .then(function(){
+        if(mode==='misura'){ setMassima(''); setMinima(''); setBattiti(''); setOra(nowHM()); }
+        setCompressa('nessuna');
+        loadHistory();
+      })
       .catch(function(e){console.error(e);})
       .finally(function(){setSaving(false);});
   }
@@ -1742,11 +1747,14 @@ function PressureTab(props) {
   });
 
   var today_dt = new Date(); today_dt.setHours(0,0,0,0);
-  var lastP = null;
+  var lastP = null, todayFarmaco = null;
   history.forEach(function(p){
     var dt=p.data&&p.data.toDate?p.data.toDate():new Date(p.data);
     dt.setHours(0,0,0,0);
-    if(dt.getTime()===today_dt.getTime()) lastP=p;
+    if(dt.getTime()===today_dt.getTime()){
+      if(p.massima!=null && p.minima!=null) lastP=p;
+      else todayFarmaco=p;
+    }
   });
 
   function medLabel(c){
@@ -1760,18 +1768,24 @@ function PressureTab(props) {
       <div className="card">
         <div className="card-title">🩺 Andamento pressione</div>
         {lastP && (
-          <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:4,flexWrap:'wrap'}}>
             <span className={'bp-val'+(lastP.massima>=140||lastP.minima>=90?' hi':'')}>{lastP.massima}/{lastP.minima}</span>
             <span style={{fontSize:13,color:'var(--tx3)'}}>mmHg oggi</span>
             <span style={{fontSize:13,color:'var(--tx3)'}}>· {lastP.battiti} bpm</span>
           </div>
         )}
-        <div className="pills" style={{marginBottom:8}}>
+        {todayFarmaco && (
+          <div style={{fontSize:12,color:'var(--tx3)',marginBottom:10}}>
+            💊 Oggi: {todayFarmaco.compressa==='nessuna'?'nessuna compressa':medLabel(todayFarmaco.compressa)}
+          </div>
+        )}
+        {(lastP||todayFarmaco) && <div style={{height:2}}/>}
+        <div className="pills" style={{marginBottom:8,marginTop:lastP||todayFarmaco?8:0}}>
           {[7,14,30,90].map(function(r){
             return <div key={r} className={'pill'+(chartRange===r?' on':'')} onClick={function(){setChartRange(r);}}>{'Ultimi '+r+'g'}</div>;
           })}
         </div>
-        {histLoading ? <div className="spin-wrap"><div className="spinner"/></div> : <PressureChart data={chartData}/>}
+        {histLoading ? <div className="spin-wrap"><div className="spinner"/></div> : <PressureChart data={chartData.filter(function(d){return d.massima!=null && d.minima!=null;})}/>}
         <div style={{display:'flex',gap:14,marginTop:8,fontSize:11,color:'var(--tx3)'}}>
           <span><span style={{color:'#e87a7a'}}>●</span> Massima</span>
           <span><span style={{color:'#e8a84c'}}>●</span> Minima</span>
@@ -1779,31 +1793,44 @@ function PressureTab(props) {
       </div>
 
       <div className="card">
-        <div className="card-title">Registra misurazione</div>
+        <div className="pills" style={{marginBottom:12}}>
+          <div className={'pill'+(mode==='misura'?' on':'')} onClick={function(){setMode('misura');}}>📏 Misurazione</div>
+          <div className={'pill'+(mode==='farmaco'?' on':'')} onClick={function(){setMode('farmaco');}}>💊 Solo compressa</div>
+        </div>
+        <div className="card-title">{mode==='misura'?'Registra misurazione':'Registra assunzione compressa'}</div>
+        {mode==='farmaco' && (
+          <div style={{fontSize:12,color:'var(--tx3)',marginBottom:12,marginTop:-6}}>
+            Per un giorno in cui non hai misurato la pressione ma vuoi comunque registrare la compressa presa (o che non ne hai presa nessuna).
+          </div>
+        )}
         <div className="bp-row">
           <div className="ig">
             <label className="lbl">Data</label>
             <input type="date" className="inp" value={date} max={today} onChange={function(e){setDate(e.target.value);}}/>
           </div>
-          <div className="ig">
-            <label className="lbl">Ora</label>
-            <input type="time" className="inp" value={ora} onChange={function(e){setOra(e.target.value);}}/>
-          </div>
+          {mode==='misura' && (
+            <div className="ig">
+              <label className="lbl">Ora</label>
+              <input type="time" className="inp" value={ora} onChange={function(e){setOra(e.target.value);}}/>
+            </div>
+          )}
         </div>
-        <div className="bp-row">
-          <div className="ig">
-            <label className="lbl">Massima</label>
-            <input type="number" className="inp" placeholder="es. 120" value={massima} onChange={function(e){setMassima(e.target.value);}}/>
+        {mode==='misura' && (
+          <div className="bp-row">
+            <div className="ig">
+              <label className="lbl">Massima</label>
+              <input type="number" className="inp" placeholder="es. 120" value={massima} onChange={function(e){setMassima(e.target.value);}}/>
+            </div>
+            <div className="ig">
+              <label className="lbl">Minima</label>
+              <input type="number" className="inp" placeholder="es. 80" value={minima} onChange={function(e){setMinima(e.target.value);}}/>
+            </div>
+            <div className="ig">
+              <label className="lbl">Battiti</label>
+              <input type="number" className="inp" placeholder="es. 70" value={battiti} onChange={function(e){setBattiti(e.target.value);}}/>
+            </div>
           </div>
-          <div className="ig">
-            <label className="lbl">Minima</label>
-            <input type="number" className="inp" placeholder="es. 80" value={minima} onChange={function(e){setMinima(e.target.value);}}/>
-          </div>
-          <div className="ig">
-            <label className="lbl">Battiti</label>
-            <input type="number" className="inp" placeholder="es. 70" value={battiti} onChange={function(e){setBattiti(e.target.value);}}/>
-          </div>
-        </div>
+        )}
         <div className="ig">
           <div className="lbl" style={{marginBottom:6}}>Compressa presa</div>
           <div className="pills">
@@ -1812,8 +1839,8 @@ function PressureTab(props) {
             <div className={'pill'+(compressa==='b'?' on':'')} onClick={function(){setCompressa('b');}}>{med2}</div>
           </div>
         </div>
-        <button className="btn btn-p btn-full" onClick={save} disabled={saving||!valid()}>
-          {saving?'Salvataggio...':'Salva misurazione'}
+        <button className="btn btn-p btn-full" onClick={save} disabled={saving||!canSave()}>
+          {saving?'Salvataggio...':(mode==='misura'?'Salva misurazione':'Registra assunzione')}
         </button>
       </div>
 
@@ -1828,12 +1855,17 @@ function PressureTab(props) {
             }).map(function(p){
               var dt=p.data&&p.data.toDate?p.data.toDate():new Date(p.data);
               var ml=medLabel(p.compressa);
+              var hasM = p.massima!=null && p.minima!=null;
               return (
                 <div key={p.id} className="wt-row">
-                  <span className={'bp-val'+(p.massima>=140||p.minima>=90?' hi':'')} style={{fontSize:17,minWidth:64}}>{p.massima}/{p.minima}</span>
+                  {hasM ? (
+                    <span className={'bp-val'+(p.massima>=140||p.minima>=90?' hi':'')} style={{fontSize:17,minWidth:64}}>{p.massima}/{p.minima}</span>
+                  ) : (
+                    <span style={{fontSize:19,minWidth:64,textAlign:'center'}}>💊</span>
+                  )}
                   <div className="wt-info">
-                    <div className="wt-date">{fmtDate(dt)}{p.ora?' · '+p.ora:''} · {p.battiti} bpm</div>
-                    {ml && <div className="wt-meta"><span className="bp-med">{ml}</span></div>}
+                    <div className="wt-date">{fmtDate(dt)}{hasM&&p.ora?' · '+p.ora:''}{hasM?' · '+p.battiti+' bpm':''}</div>
+                    {ml ? <div className="wt-meta"><span className="bp-med">{ml}</span></div> : (!hasM ? <div className="wt-meta">Nessuna compressa</div> : null)}
                   </div>
                   <button className="ico-btn" onClick={function(){
                     delPressure(p.id).then(function(){setHistory(function(prev){return prev.filter(function(x){return x.id!==p.id;});});});
