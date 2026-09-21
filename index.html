@@ -425,15 +425,15 @@ function getPressures(uid,start,end){
 function delPressure(id){return db.collection('foodDiary_pressure').doc(id).delete();}
 
 function searchOpenFoodFacts(query){
-  var url='https://it.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(query)+'&search_simple=1&action=process&json=1&page_size=15&lc=it&cc=it&fields=product_name,brands,allergens_tags,categories_tags,image_small_url,code';
+  var url='https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(query)+'&search_simple=1&action=process&json=1&page_size=20&lc=it&fields=product_name,product_name_it,brands,allergens_tags,categories_tags,image_small_url,code';
   return fetch(url).then(function(r){return r.json();}).then(function(data){
-    return (data.products||[]).filter(function(p){return p.product_name;}).map(function(p){
+    return (data.products||[]).filter(function(p){return p.product_name||p.product_name_it;}).map(function(p){
       var allergens=p.allergens_tags||[];
       var hasGluten=allergens.indexOf('en:gluten')>=0||allergens.indexOf('en:wheat')>=0;
       var hasLactose=allergens.indexOf('en:milk')>=0||allergens.indexOf('en:lactose')>=0;
       return {
         code:p.code,
-        nome:(p.product_name||'').substring(0,60),
+        nome:(p.product_name_it||p.product_name||'').substring(0,60),
         brand:p.brands||'',
         gluten:hasGluten,
         lactose:hasLactose,
